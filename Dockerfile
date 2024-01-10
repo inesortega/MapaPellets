@@ -4,7 +4,17 @@ FROM rocker/r-apt:bionic
 WORKDIR /app
 
 RUN apt-get update && \
-  apt-get install -y libxml2-dev
+  apt-get install -y libxml2-dev libmysqlclient-dev      
+
+RUN apt-get install -y libgdal-dev
+
+RUN apt-get install -y libproj-dev
+
+RUN apt-get install -y libgeos-dev
+
+RUN apt-get install -y libudunits2-dev
+
+RUN apt-get install -y netcdf-bin
 
 RUN apt-get update
 

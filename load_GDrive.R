@@ -79,13 +79,15 @@ get_data <- function(){
 
   # data already retrieved
   if (file.exists("praias.csv")) {
-    praias <- read.csv("praias.csv")
-    praias$Marca.temporal <- sapply(praias$Marca.temporal, parse_dates)
-    praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal)
+    praias <- read_csv("praias.csv")
+    if(nrow(praias > 0)){
+      praias$Marca.temporal <- sapply(praias$Marca.temporal, parse_dates)
+      praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal)
 
-    max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in praias.csv
-    # Get only new registers from cloud
-    data <- data %>% filter(as.POSIXct(data$Marca.temporal) > max_date)
+      max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in praias.csv
+      # Get only new registers from cloud
+      data <- data %>% filter(as.POSIXct(data$Marca.temporal) > max_date)
+    }
   }
 
   message(paste("Processing ", nrow(data), " rows"))
@@ -120,5 +122,10 @@ get_data <- function(){
       data$lon[idx] <- value[2]
     }
   }
-  write_csv(data, "praias.csv", append = T)
+
+  if(file.exists("praias.csv") & nrow(praias) > 0){
+    file.remove("praias.csv")
+    data <- rbind(data, praias)
+  }
+  write_csv(data, "praias.csv")
 }

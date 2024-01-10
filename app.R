@@ -9,6 +9,7 @@ library(shinydashboard)
 library(shinythemes)
 library(shinyjs)
 library(htmltools)
+if(!required("readr")) install.packages("readr")
 library(readr)
 
 source("load_GDrive.R")
@@ -56,8 +57,8 @@ ui <- dashboardPage(skin = "black",
     tags$style(HTML(".leaflet { height: calc(100vh - 200px) !important; }")),  # Set map height to 100% viewport height
     fluidRow(
       column(12, h4("Mapa actualizado da situación das praias galegas")),
-      column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets. Os datos actualizanse cada 15min. ")),
-      column(12, HTML(paste("Lembrar que todos os datos recollense de forma colaborativa por voluntarios a través deste ", "<a href='YOUR_FORM_URL' target='_blank'>formulario</a>"))),
+      column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets. O panel lateral mostra a última actualización dos datos e información adicional sobre cada punto rexistrado.")),
+      column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios a través deste ", "<a href='YOUR_FORM_URL' target='_blank'>formulario</a>"))),
       column(12, leafletOutput("mymap"))  # Adjust the width of the map
     ),
     fluidRow(
@@ -95,13 +96,17 @@ server <- function(input, output, session) {
   # Create a reactiveValues object to store the clicked marker information
   markerInfo <- reactiveValues(clickedMarker = NULL)
 
+
+
   observe({
-    invalidateLater(900000) # 15min
-    showNotification(paste("Actualizando datos...", Sys.time()), duration = 60)
+    invalidateLater(60000) # 600000 = 10min
+    showNotification(paste("Actualizando datos...", Sys.time()), duration = 10)
     get_data()
   })
+
   data <- reactive({
     updateTimestamp$time <- Sys.time()
+
     all_data <- read_csv("praias.csv")
     all_data$Marca.temporal <- as.Date(all_data$Marca.temporal)
 

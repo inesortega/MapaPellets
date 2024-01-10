@@ -3,10 +3,11 @@ services:
 
     pellets-shiny:
         restart: always
+        image: pellets:latest
         build: .
         container_name: pellets-shiny
         volumes:
-          - ./:/srv/shiny-server/pellets
+          - ./:/app
         ports:
           - 3838:3838/tcp
         networks:
