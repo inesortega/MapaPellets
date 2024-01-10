@@ -66,12 +66,11 @@ ui <- dashboardPage(skin = "black",
                style = "text-align: center; padding: 10px; background-color: #f0f0f0;",
                "Author: ", tags$a("Inés Ortega Fernández", href = "https://inesortega.github.io/"),
                " | Contact: ", tags$a("datospellets@gmail.com", href = "datospellets@gmail.com")
-             ),
-     column(12,
-            tags$footer(
-              style = "text-align: center; padding: 10px; background-color: #f0f0f0;",
-              "Este mapa elaborouse grazas á colaboración e recollida de datos de voluntarios, e ó traballo de Ana, Miguel das Chas e Noia Limpa na recollida de datos.")
-            )
+             )
+      ),
+      column(12, tags$footer(
+        style = "text-align: center; padding: 5px; background-color: #f0f0f0;",
+        "Este mapa elaborouse grazas á colaboración e recollida de datos de voluntarios, e ó traballo de Ana, Miguel das Chas e Noia Limpa na recollida de datos.")
       )
     ),
     useShinyjs(),
@@ -96,10 +95,12 @@ server <- function(input, output, session) {
   # Create a reactiveValues object to store the clicked marker information
   markerInfo <- reactiveValues(clickedMarker = NULL)
 
-  data <- reactive({
+  observe({
     invalidateLater(900000) # 15min
     showNotification(paste("Actualizando datos...", Sys.time()), duration = 60)
     get_data()
+  })
+  data <- reactive({
     updateTimestamp$time <- Sys.time()
     all_data <- read_csv("praias.csv")
     all_data$Marca.temporal <- as.Date(all_data$Marca.temporal)
@@ -159,8 +160,11 @@ server <- function(input, output, session) {
       addLegend(
         position = "bottomright",
         colors = c("#e31a1c", "#33a02c", "#701796", "#1f78b4"),  # Colors for the four categories
-        labels = c("Hai pellets na praia", "Non hai pellets na praia", "Convocatoria de xornada de limpeza", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"),
-        title = "Tipo de información"
+        labels = c(paste("Hai pellets na praia (", nrow(data_hai_pellets()), ")"),
+                   paste("Non hai pellets na praia (", nrow(data_non_hai_pellets()), ")"),
+                   paste("Convocatoria de xornada de limpeza(", nrow(data_convocatoria()), ")"),
+                   paste("Xa non hai (a praia quedaba limpa cando se encheu o formulario) (", nrow(data_xa_non_hai()), ")")),
+        title = "Tipo de información e reconto por tipo"
       )
   })
 
@@ -327,11 +331,6 @@ server <- function(input, output, session) {
               "<strong>Quen organiza a iniciativa: </strong>", info$Quen.organiza.a.iniciativa, "<br>",
               "<strong>Contacto: </strong>", info$Contacto, "<br>",
               tags$a("Ligazón", href = info$Ligazón), "<br>"))),
-            column(12, h4("Datos GPS dispoñibles:")),
-            column(12, HTML(paste(
-              "<strong>Latitude: </strong>", info$lat, "<br>",
-              "<strong>Lonxitude: </strong>", info$lon, "<br>")
-            )),
             if(!is.null(updateTimestamp$time)){
               column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
             }
