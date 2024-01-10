@@ -1,0 +1,131 @@
+# load libraries
+library(stringr)
+library(stringi)
+library(dplyr)
+library(googlesheets4)
+library(tidygeocoder)
+
+# Preprocesado da informacion -- Extraccion da xeolocalizacion a partir do nome da praia
+
+# Function to clean values
+clean_values <- function(value) {
+  if (!grepl("^https?://", value)) {
+    # Remove leading and trailing parentheses
+    value <- gsub("^\\(|\\)$", "", value)
+  }
+  return(value)
+}
+
+parse_dates <- function(timestamp){
+  tryCatch(
+    posix_time <- as.POSIXct(timestamp, format = "%Y-%m-%d %H:%M:%OS", tz = "UTC")
+    , finally = {
+      posix_time <- as.POSIXct(timestamp, format = "%Y-%m-%d %H:%M:%OS", tz = "UTC")
+    }
+  )
+}
+
+# Function to extract and convert coordinates from various formats
+extract_and_convert_coords <- function(coord_str) {
+
+  # Function to clean values
+  clean_values <- function(value) {
+    if (!grepl("^https?://", value)) {
+      # Remove leading and trailing parentheses
+      value <- gsub("^\\(|\\)$", "", value)
+    }
+    return(value)
+  }
+
+  # Pattern for detecting and extracting coordinates in various formats
+  pattern <- "\\(?\\s*(-?\\d{1,3}\\.?\\d{0,15})[°, ]*\\s*([NS])?[,\\s]*\\s*(-?\\d{1,3}\\.?\\d{0,15})[°, ]*\\s*([EW])?\\)?"
+  matches <- regmatches(coord_str, gregexpr(pattern, coord_str))
+
+  if (length(matches[[1]]) > 0) {
+    parts <- strsplit(matches[[1]][1], "[^0-9.-]+")[[1]]
+    lat <- as.numeric(parts[1])
+    lon <- as.numeric(parts[2])
+
+    # Adjust for N/S and E/W if present
+    if (length(parts) > 2 && !is.na(parts[3])) {
+      if (toupper(parts[3]) == "S") lat <- -lat
+      if (toupper(parts[3]) == "W") lon <- -lon
+    }
+    return(c(lat, lon))
+  }
+  return(NULL)
+}
+
+#Preprocesado da informacion -- Extraccion da xeolocalizacion a partir do nome da praia
+
+get_data <- function(){
+
+  #Read google sheets data into R
+  options(gargle_oauth_cache =".secrets")
+  json_key <- Sys.getenv("GOOGLE_SHEETS_JSON_KEY") #name of the file on .secrets
+  googlesheets4::gs4_auth(email = "pelletmap@earnest-vine-377812.iam.gserviceaccount.com", path=json_key)
+
+  ss <- 'https://docs.google.com/spreadsheets/d/1YXg66z5sEPVK-pHimntiIE2oJZ3xKtpSARX6BfBaz4Y'
+  data <- googlesheets4::read_sheet(ss)
+
+  hour <- as.POSIXct(data$Hora, tz = "UTC")
+  data$Hora <- format(hour, format = "%H")
+
+  data$`Marca temporal` <- sapply(data$`Marca temporal`, parse_dates)
+  data$`Marca temporal` <- sapply(data$`Marca temporal`, parse_dates)
+  praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal)
+
+  # data already retrieved
+  if (file.exists("praias.csv")) {
+    praias <- read.csv("praias.csv")
+    praias$Marca.temporal <- sapply(praias$Marca.temporal, parse_dates)
+    praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal)
+
+    max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in praias.csv
+    # Get only new registers from cloud
+    data <- data %>% filter(as.POSIXct(data$`Marca temporal`) > max_date)
+  }
+
+  message(paste("Processing ", nrow(data), " rows"))
+  for (idx in seq_len(nrow(data))) {
+
+    coord_str <- data$`Xeolocalización`[idx]
+
+    coord_str <- sapply(coord_str, clean_values)
+
+    value <- extract_and_convert_coords(coord_str)
+
+    if (is.null(value)) {
+      place_name <- data$`Nome da praia, Concello`[idx]
+      geo_result <- geo(place_name, method = "osm", full_results = FALSE)
+
+      if(is.na(geo_result$lat)){
+        # probar so co nome da praia...
+        praia_concello <- sapply(place_name, function(x) strsplit(x, ", ")[[1]], USE.NAMES=FALSE)
+        geo_result <- geo(praia_concello[1], method = "osm", full_results = FALSE)
+        if(is.na(geo_result$lat) & !is.null(praia_concello[2])){
+          geo_result <- geo(praia_concello[2], method = "osm", full_results = FALSE) #only concello if available
+        }
+        else if(is.null(praia_concello[2])){
+          # get concello from var name
+          geo_result <- geo(data$`Concello`[idx], method = "osm", full_results = FALSE)
+        }
+      }
+      data$lat[idx] <- geo_result$lat
+      data$lon[idx] <- geo_result$long
+    } else {
+      data$lat[idx] <- value[1]
+      data$lon[idx] <- value[2]
+    }
+  }
+
+  # save file
+  if(file.exists("praias.csv")){
+    names(data) <- names(praias)
+    praias <- rbind(praias, data) #combine new data
+    data <- praias
+    message(paste("Combining new data... total size = "), nrow(data))
+    file.remove("praias.csv")
+  }
+  write.csv(data, "praias.csv", row.names=F)
+}

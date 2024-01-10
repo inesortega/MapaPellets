@@ -1,0 +1,13 @@
+name: pelletmap
+title:
+username: 7igr49-in0s-ortega
+account: 7igr49-in0s-ortega
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 10884526
+bundleId: 8127620
+url: https://7igr49-in0s-ortega.shinyapps.io/pelletmap/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .github/workflows/deploy.yml|.pytest_cache/CACHEDIR.TAG|.pytest_cache/README.md|.pytest_cache/v/cache/nodeids|.pytest_cache/v/cache/stepwise|.RData|.Renviron|.secrets/7a6077d23f6776ccc63f8f70bc12b214_inesortega02@gmail.com|data_crawler/data_crawler.py|data_crawler/requirements.txt|docker-compose.yml|Dockerfile|praias.csv|requirements-bin.txt|requirements-src.R|test.R

@@ -1,0 +1,16 @@
+version: '3'
+services:
+
+    pellets-shiny:
+        restart: always
+        build: .
+        container_name: pellets-shiny
+        volumes:
+          - ./:/srv/shiny-server/pellets
+        ports:
+          - 3838:3838/tcp
+        networks:
+          - default
+
+networks:
+  default:
