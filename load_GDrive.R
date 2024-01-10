@@ -3,6 +3,7 @@ library(stringr)
 library(stringi)
 library(dplyr)
 library(googlesheets4)
+library(readr)
 library(tidygeocoder)
 
 # Preprocesado da informacion -- Extraccion da xeolocalizacion a partir do nome da praia
@@ -65,15 +66,16 @@ get_data <- function(){
   json_key <- Sys.getenv("GOOGLE_SHEETS_JSON_KEY") #name of the file on .secrets
   googlesheets4::gs4_auth(email = "pelletmap@earnest-vine-377812.iam.gserviceaccount.com", path=json_key)
 
-  ss <- 'https://docs.google.com/spreadsheets/d/1YXg66z5sEPVK-pHimntiIE2oJZ3xKtpSARX6BfBaz4Y'
+  ss <- 'https://docs.google.com/spreadsheets/d/1E7K92pX4aS7CmGJWjYavEL8menX2gBkHoxtT3YTXwoc/'
   data <- googlesheets4::read_sheet(ss)
+
+  names(data) <- make.names(names(data))
 
   hour <- as.POSIXct(data$Hora, tz = "UTC")
   data$Hora <- format(hour, format = "%H")
 
-  data$`Marca temporal` <- sapply(data$`Marca temporal`, parse_dates)
-  data$`Marca temporal` <- sapply(data$`Marca temporal`, parse_dates)
-  praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal)
+  data$Marca.temporal <- sapply(data$Marca.temporal, parse_dates)
+  data$Marca.temporal <- as.POSIXct(data$Marca.temporal)
 
   # data already retrieved
   if (file.exists("praias.csv")) {
@@ -83,7 +85,7 @@ get_data <- function(){
 
     max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in praias.csv
     # Get only new registers from cloud
-    data <- data %>% filter(as.POSIXct(data$`Marca temporal`) > max_date)
+    data <- data %>% filter(as.POSIXct(data$Marca.temporal) > max_date)
   }
 
   message(paste("Processing ", nrow(data), " rows"))
@@ -96,7 +98,7 @@ get_data <- function(){
     value <- extract_and_convert_coords(coord_str)
 
     if (is.null(value)) {
-      place_name <- data$`Nome da praia, Concello`[idx]
+      place_name <- data$Nome.da.praia..Concello[idx]
       geo_result <- geo(place_name, method = "osm", full_results = FALSE)
 
       if(is.na(geo_result$lat)){
@@ -108,7 +110,7 @@ get_data <- function(){
         }
         else if(is.null(praia_concello[2])){
           # get concello from var name
-          geo_result <- geo(data$`Concello`[idx], method = "osm", full_results = FALSE)
+          geo_result <- geo(data$Concello[idx], method = "osm", full_results = FALSE)
         }
       }
       data$lat[idx] <- geo_result$lat
@@ -118,14 +120,5 @@ get_data <- function(){
       data$lon[idx] <- value[2]
     }
   }
-
-  # save file
-  if(file.exists("praias.csv")){
-    names(data) <- names(praias)
-    praias <- rbind(praias, data) #combine new data
-    data <- praias
-    message(paste("Combining new data... total size = "), nrow(data))
-    file.remove("praias.csv")
-  }
-  write.csv(data, "praias.csv", row.names=F)
+  write_csv(data, "praias.csv", append = T)
 }

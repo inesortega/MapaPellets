@@ -9,6 +9,7 @@ library(shinydashboard)
 library(shinythemes)
 library(shinyjs)
 library(htmltools)
+library(readr)
 
 source("load_GDrive.R")
 
@@ -55,7 +56,7 @@ ui <- dashboardPage(skin = "black",
     tags$style(HTML(".leaflet { height: calc(100vh - 200px) !important; }")),  # Set map height to 100% viewport height
     fluidRow(
       column(12, h4("Mapa actualizado da situación das praias galegas")),
-      column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets. ")),
+      column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets. Os datos actualizanse cada 15min. ")),
       column(12, HTML(paste("Lembrar que todos os datos recollense de forma colaborativa por voluntarios a través deste ", "<a href='YOUR_FORM_URL' target='_blank'>formulario</a>"))),
       column(12, leafletOutput("mymap"))  # Adjust the width of the map
     ),
@@ -64,8 +65,13 @@ ui <- dashboardPage(skin = "black",
              tags$footer(
                style = "text-align: center; padding: 10px; background-color: #f0f0f0;",
                "Author: ", tags$a("Inés Ortega Fernández", href = "https://inesortega.github.io/"),
-               " | Contact: ", tags$a("ines.ortega@uvigo.gal", href = "mailto:ines.ortega@uvigo.gal")
-             )
+               " | Contact: ", tags$a("datospellets@gmail.com", href = "datospellets@gmail.com")
+             ),
+     column(12,
+            tags$footer(
+              style = "text-align: center; padding: 10px; background-color: #f0f0f0;",
+              "Este mapa elaborouse grazas á colaboración e recollida de datos de voluntarios, e ó traballo de Ana, Miguel das Chas e Noia Limpa na recollida de datos.")
+            )
       )
     ),
     useShinyjs(),
@@ -90,16 +96,12 @@ server <- function(input, output, session) {
   # Create a reactiveValues object to store the clicked marker information
   markerInfo <- reactiveValues(clickedMarker = NULL)
 
-
-  observe({
+  data <- reactive({
     invalidateLater(900000) # 15min
     showNotification(paste("Actualizando datos...", Sys.time()), duration = 60)
     get_data()
-  })
-
-  data <- reactive({
     updateTimestamp$time <- Sys.time()
-    all_data <- read.csv("praias.csv")
+    all_data <- read_csv("praias.csv")
     all_data$Marca.temporal <- as.Date(all_data$Marca.temporal)
 
     # Filter data based on selected date range
