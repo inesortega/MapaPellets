@@ -5,6 +5,8 @@ library(dplyr)
 library(googlesheets4)
 library(readr)
 library(tidygeocoder)
+library(httr)
+set_config(config(ssl_verifypeer = 0L))
 
 # Preprocesado da informacion -- Extraccion da xeolocalizacion a partir do nome da praia
 
@@ -59,7 +61,7 @@ extract_and_convert_coords <- function(coord_str) {
 
 #Preprocesado da informacion -- Extraccion da xeolocalizacion a partir do nome da praia
 
-get_data <- function(){
+get_data <- function(update_all = FALSE){
 
   #Read google sheets data into R
   options(gargle_oauth_cache =".secrets")
@@ -75,18 +77,26 @@ get_data <- function(){
   data$Hora <- format(hour, format = "%H")
 
   data$Marca.temporal <- sapply(data$Marca.temporal, parse_dates)
-  data$Marca.temporal <- as.POSIXct(data$Marca.temporal)
+  data$Marca.temporal <- as.POSIXct(data$Marca.temporal, origin = "1970-01-01", tz = "UTC")
 
   # data already retrieved
   if (file.exists("praias.csv")) {
     praias <- read_csv("praias.csv")
     if(nrow(praias > 0)){
       praias$Marca.temporal <- sapply(praias$Marca.temporal, parse_dates)
-      praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal)
+      praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal, origin = "1970-01-01", tz = "UTC")
 
       max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in praias.csv
-      # Get only new registers from cloud
-      data <- data %>% filter(as.POSIXct(data$Marca.temporal) > max_date)
+
+      if(update_all == FALSE){
+        data <- data %>% filter(as.POSIXct(data$Marca.temporal) > max_date)
+      }
+      else{
+        # Get registers from current day
+        message("Updating today's data...")
+        today <- format(Sys.Date(), format = "%Y-%m-%d")
+        data <- data %>% filter(format(data$Marca.temporal, format = "%Y-%m-%d") == today)
+      }
     }
   }
 

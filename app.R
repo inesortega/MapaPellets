@@ -9,10 +9,9 @@ library(shinydashboard)
 library(shinythemes)
 library(shinyjs)
 library(htmltools)
-if(!required("readr")) install.packages("readr")
 library(readr)
 
-source("load_GDrive.R")
+source("data_loader.R")
 
 start_date <- as.Date("2024-01-06")
 end_date <- Sys.Date()
@@ -58,7 +57,7 @@ ui <- dashboardPage(skin = "black",
     fluidRow(
       column(12, h4("Mapa actualizado da situación das praias galegas")),
       column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets. O panel lateral mostra a última actualización dos datos e información adicional sobre cada punto rexistrado.")),
-      column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios a través deste ", "<a href='YOUR_FORM_URL' target='_blank'>formulario</a>"))),
+      column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios e entidades colaborativas a través deste ", "<a href='YOUR_FORM_URL' target='_blank'>formulario</a>"))),
       column(12, leafletOutput("mymap"))  # Adjust the width of the map
     ),
     fluidRow(
@@ -69,10 +68,6 @@ ui <- dashboardPage(skin = "black",
                " | Contact: ", tags$a("datospellets@gmail.com", href = "datospellets@gmail.com")
              )
       ),
-      column(12, tags$footer(
-        style = "text-align: center; padding: 5px; background-color: #f0f0f0;",
-        "Este mapa elaborouse grazas á colaboración e recollida de datos de voluntarios, e ó traballo de Ana, Miguel das Chas e Noia Limpa na recollida de datos.")
-      )
     ),
     useShinyjs(),
   ),
@@ -96,12 +91,22 @@ server <- function(input, output, session) {
   # Create a reactiveValues object to store the clicked marker information
   markerInfo <- reactiveValues(clickedMarker = NULL)
 
-
-
   observe({
     invalidateLater(60000) # 600000 = 10min
     showNotification(paste("Actualizando datos...", Sys.time()), duration = 10)
     get_data()
+  })
+
+  last_run_time <- Sys.time() # Initialize the last run time
+  observe({
+    current_time <- Sys.time()
+    time_since_last_run <- as.numeric(difftime(current_time, last_run_time, units = "hours"))
+
+    if (time_since_last_run >= 6) {  # Check if 6 hours have passed
+      showNotification(paste("Actualizando datos históricos...", current_time), duration = 60)
+      get_data(update_all = TRUE)
+      last_run_time <- current_time  # Update the last run time
+    }
   })
 
   data <- reactive({
@@ -168,7 +173,7 @@ server <- function(input, output, session) {
         labels = c(paste("Hai pellets na praia (", nrow(data_hai_pellets()), ")"),
                    paste("Non hai pellets na praia (", nrow(data_non_hai_pellets()), ")"),
                    paste("Convocatoria de xornada de limpeza(", nrow(data_convocatoria()), ")"),
-                   paste("Xa non hai (a praia quedaba limpa cando se encheu o formulario) (", nrow(data_xa_non_hai()), ")")),
+                   paste("Xa non hai (quedou limpa) (", nrow(data_xa_non_hai()), ")")),
         title = "Tipo de información e reconto por tipo"
       )
   })
@@ -208,6 +213,7 @@ server <- function(input, output, session) {
                 radius = 10,
                 color = "#e31a1c",
                 popup = ~paste(
+                  paste("<strong>Praia: </strong>", Nome.da.praia..Concello, "<br>"),
                   paste("<strong>Data da actualización: </strong>", Marca.temporal, "<br>"),
                   paste("<strong>Está avisado o 112?</strong>", Está.avisado.o.112., "<br>"),
                   paste("<strong>Hai animais mortos</strong>", Atopaches.animáis.mortos., "<br>"),
@@ -232,6 +238,7 @@ server <- function(input, output, session) {
                 radius = 10,
                 color = "#33a02c",
                 popup = ~paste(
+                  paste("<strong>Praia: </strong>", Nome.da.praia..Concello, "<br>"),
                   paste("<strong>Data da actualización: </strong>", Marca.temporal, "<br>"),
                   paste("<strong>Hai animais mortos</strong>", Atopaches.animáis.mortos., "<br>")
                 ),
@@ -249,6 +256,7 @@ server <- function(input, output, session) {
                 color = "#701796",
                 popup = ~paste(
                   paste("<strong>Data da convocatoria: </strong>", as.Date(Data), " ", Hora, "<br>"),
+                  paste("<strong>Praia: </strong>", Nome.da.praia..Concello, "<br>"),
                   paste("<strong>Lugar de encontro: </strong>", Lugar.de.encontro, "<br>"),
                   paste("<strong>Quen organiza a iniciativa? </strong>", Quen.organiza.a.iniciativa, "<br>"),
                   paste(tags$a("Ligazón", href = Ligazón), "<br>")
@@ -265,6 +273,7 @@ server <- function(input, output, session) {
                 layerId = ~id,
                 radius = 10,
                 popup = ~paste(
+                  paste("<strong>Praia: </strong>", Nome.da.praia..Concello, "<br>"),
                   paste("<strong>Data da limpeza: </strong>", Marca.temporal, "<br>"),
                   paste("<strong>Hai animais mortos</strong>", Atopaches.animáis.mortos., "<br>"),
                   paste("<strong>Por onde están espallados: </strong>", Por.onde.están.espallados.os.pellets, "<br>"),
@@ -304,6 +313,10 @@ server <- function(input, output, session) {
       tipo <- info$Tipo.de.actualización.que.nos.queres.facer.chegar
 
       if(tipo != "Convocatoria de xornada de limpeza"){
+
+        image_links <- info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza
+        links <- sapply(image_links, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
+
         output$sidebarContent <- renderUI({
           sidebar <- fluidRow(
             HTML("<div style='padding-left: 20px;'>"),
@@ -312,12 +325,17 @@ server <- function(input, output, session) {
               "<strong>Praia: </strong>", info$Nome.da.praia..Concello, "<br>",
               "<strong>Data da limpeza: </strong>", info$Marca.temporal, "<br>",
               "<strong>Concello: </strong>", info$Concello, "<br>",
-              "<strong>Información adicional: </strong>", info$Información.adicional, "<br>"))),
-            column(12, h4("Datos GPS dispoñibles:")),
+              "<strong>Información adicional: </strong>", info$Información.adicional, "<br>"
+            ))),
+            column(12, h4("Imaxes dispoñibles:")),
             column(12, HTML(paste(
-              "<strong>Latitude: </strong>", info$lat, "<br>",
-              "<strong>Lonxitude: </strong>", info$lon, "<br>")
-            )),
+              lapply(1:length(links), function(i) {
+                HTML(paste(
+                  "<a href='", links[i], "' target='_blank'>Imaxe ", i, "</a><br>"
+                ))
+              }),
+              collapse = ""
+            ))),
             if(!is.null(updateTimestamp$time)){
               column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
             }
@@ -335,6 +353,7 @@ server <- function(input, output, session) {
               "<strong>Lugar de encontro: </strong>", info$Lugar.de.encontro, "<br>",
               "<strong>Quen organiza a iniciativa: </strong>", info$Quen.organiza.a.iniciativa, "<br>",
               "<strong>Contacto: </strong>", info$Contacto, "<br>",
+              tags$a("Cartaz", href = info$Cartaz), "<br>",
               tags$a("Ligazón", href = info$Ligazón), "<br>"))),
             if(!is.null(updateTimestamp$time)){
               column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
@@ -351,6 +370,12 @@ server <- function(input, output, session) {
     markerInfo$clickedMarker
   })
 
+}
+
+message(Sys.getenv("ENV"))
+if(Sys.getenv("ENV") == "docker"){
+  options(shiny.host = '0.0.0.0')
+  options(shiny.port = 3838)
 }
 
 shinyApp(ui, server)

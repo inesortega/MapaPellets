@@ -11,6 +11,7 @@ pkgs <- c(
     'stringr',
     'shiny',
     'tidygeocoder',
-    'htmltools'
+    'htmltools',
+    'readr'
 )
 install.packages(pkgs)

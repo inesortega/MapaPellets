@@ -12,6 +12,9 @@ services:
           - 3838:3838/tcp
         networks:
           - default
+        environment:
+          - GOOGLE_SHEETS_JSON_KEY=.secrets/earnest-vine-377812-6ae11f6184bc.json
+          - ENV=docker
 
 networks:
   default:
