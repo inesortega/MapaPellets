@@ -57,7 +57,7 @@ ui <- dashboardPage(skin = "black",
     fluidRow(
       column(12, h4("Mapa actualizado da situación das praias galegas")),
       column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets. O panel lateral mostra a última actualización dos datos e información adicional sobre cada punto rexistrado.")),
-      column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios e entidades colaborativas a través deste ", "<a href='YOUR_FORM_URL' target='_blank'>formulario</a>"))),
+      column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios e entidades colaborativas a través deste ", "<a href='https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse' target='_blank'>formulario</a>"))),
       column(12, leafletOutput("mymap"))  # Adjust the width of the map
     ),
     fluidRow(
@@ -213,20 +213,21 @@ server <- function(input, output, session) {
                 radius = 10,
                 color = "#e31a1c",
                 popup = ~paste(
-                  paste("<strong>Praia: </strong>", Nome.da.praia..Concello, "<br>"),
-                  paste("<strong>Data da actualización: </strong>", Marca.temporal, "<br>"),
-                  paste("<strong>Está avisado o 112?</strong>", Está.avisado.o.112., "<br>"),
-                  paste("<strong>Hai animais mortos</strong>", Atopaches.animáis.mortos., "<br>"),
-                  paste("<strong>Por onde están espallados: </strong>", Por.onde.están.espallados.os.pellets, "<br>"),
-                  paste("<strong>Quen está recollendo os pellets?</strong>", Quen.está.recollendo.os.pellets., "<br>"),
-                  paste("<strong>Como se están a recoller?</strong>", Como.estase.a.recoller.os.pellets., "<br>"),
-                  paste("<strong>Onde se depositan?</strong>", Onde.se.depositan.os.pellets., "<br>"),
-                  paste("<strong>Hai sacos de pellets?</strong>", Hai.sacos.de.pellets., "<br>"),
-                  paste("<strong>Cantidade de pellets: </strong>", Cantidade.de.pellets, "<br>"),
-                  paste("<strong>Concello: </strong>", Concello, "<br>")
+                  paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
+                  paste("<strong>Data da actualización: </strong>", htmlEscape(Marca.temporal), "<br>"),
+                  paste("<strong>Está avisado o 112?</strong>", htmlEscape(Está.avisado.o.112.), "<br>"),
+                  paste("<strong>Hai animais mortos</strong>", htmlEscape(Atopaches.animáis.mortos.), "<br>"),
+                  paste("<strong>Por onde están espallados: </strong>", htmlEscape(Por.onde.están.espallados.os.pellets), "<br>"),
+                  paste("<strong>Quen está recollendo os pellets?</strong>", htmlEscape(Quen.está.recollendo.os.pellets.), "<br>"),
+                  paste("<strong>Como se están a recoller?</strong>", htmlEscape(Como.estase.a.recoller.os.pellets.), "<br>"),
+                  paste("<strong>Onde se depositan?</strong>", htmlEscape(Onde.se.depositan.os.pellets.), "<br>"),
+                  paste("<strong>Hai sacos de pellets?</strong>", htmlEscape(Hai.sacos.de.pellets.), "<br>"),
+                  paste("<strong>Cantidade de pellets: </strong>", htmlEscape(Cantidade.de.pellets), "<br>"),
+                  paste("<strong>Concello: </strong>", htmlEscape(Concello), "<br>")
                 ),
                 stroke = FALSE, fillOpacity = 0.5
               )
+
           } else if (selected_filter == "Non hai pellets na praia" & nrow(data_non_hai_pellets()) > 0) {
             proxy_map %>%
               addCircleMarkers(
@@ -238,9 +239,9 @@ server <- function(input, output, session) {
                 radius = 10,
                 color = "#33a02c",
                 popup = ~paste(
-                  paste("<strong>Praia: </strong>", Nome.da.praia..Concello, "<br>"),
-                  paste("<strong>Data da actualización: </strong>", Marca.temporal, "<br>"),
-                  paste("<strong>Hai animais mortos</strong>", Atopaches.animáis.mortos., "<br>")
+                  paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
+                  paste("<strong>Data da actualización: </strong>", htmlEscape(Marca.temporal), "<br>"),
+                  paste("<strong>Hai animais mortos</strong>", htmlEscape(Atopaches.animáis.mortos.), "<br>")
                 ),
                 stroke = FALSE, fillOpacity = 0.5
               )
@@ -255,11 +256,11 @@ server <- function(input, output, session) {
                 radius = 10,
                 color = "#701796",
                 popup = ~paste(
-                  paste("<strong>Data da convocatoria: </strong>", as.Date(Data), " ", Hora, "<br>"),
-                  paste("<strong>Praia: </strong>", Nome.da.praia..Concello, "<br>"),
-                  paste("<strong>Lugar de encontro: </strong>", Lugar.de.encontro, "<br>"),
-                  paste("<strong>Quen organiza a iniciativa? </strong>", Quen.organiza.a.iniciativa, "<br>"),
-                  paste(tags$a("Ligazón", href = Ligazón), "<br>")
+                  paste("<strong>Data da convocatoria: </strong>", htmlEscape(as.Date(Data)), " ", htmlEscape(Hora), "<br>"),
+                  paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
+                  paste("<strong>Lugar de encontro: </strong>", htmlEscape(Lugar.de.encontro), "<br>"),
+                  paste("<strong>Quen organiza a iniciativa? </strong>", htmlEscape(Quen.organiza.a.iniciativa), "<br>"),
+                  paste(tags$a("Ligazón", href = htmlEscape(Ligazón)), "<br>")
                 ),
                 stroke = FALSE, fillOpacity = 0.5
               )
@@ -273,16 +274,16 @@ server <- function(input, output, session) {
                 layerId = ~id,
                 radius = 10,
                 popup = ~paste(
-                  paste("<strong>Praia: </strong>", Nome.da.praia..Concello, "<br>"),
-                  paste("<strong>Data da limpeza: </strong>", Marca.temporal, "<br>"),
-                  paste("<strong>Hai animais mortos</strong>", Atopaches.animáis.mortos., "<br>"),
-                  paste("<strong>Por onde están espallados: </strong>", Por.onde.están.espallados.os.pellets, "<br>"),
-                  paste("<strong>Quen está recollendo os pellets?</strong>", Quen.está.recollendo.os.pellets., "<br>"),
-                  paste("<strong>Como se están a recoller?</strong>", Como.estase.a.recoller.os.pellets., "<br>"),
-                  paste("<strong>Onde se depositan?</strong>", Onde.se.depositan.os.pellets., "<br>"),
-                  paste("<strong>Hai sacos de pellets?</strong>", Hai.sacos.de.pellets., "<br>"),
-                  paste("<strong>Cantidade de pellets: </strong>", Cantidade.de.pellets, "<br>"),
-                  paste("<strong>Concello: </strong>", Concello, "<br>")
+                  paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
+                  paste("<strong>Data da limpeza: </strong>", htmlEscape(Marca.temporal), "<br>"),
+                  paste("<strong>Hai animais mortos</strong>", htmlEscape(Atopaches.animáis.mortos.), "<br>"),
+                  paste("<strong>Por onde están espallados: </strong>", htmlEscape(Por.onde.están.espallados.os.pellets), "<br>"),
+                  paste("<strong>Quen está recollendo os pellets?</strong>", htmlEscape(Quen.está.recollendo.os.pellets.), "<br>"),
+                  paste("<strong>Como se están a recoller?</strong>", htmlEscape(Como.estase.a.recoller.os.pellets.), "<br>"),
+                  paste("<strong>Onde se depositan?</strong>", htmlEscape(Onde.se.depositan.os.pellets.), "<br>"),
+                  paste("<strong>Hai sacos de pellets?</strong>", htmlEscape(Hai.sacos.de.pellets.), "<br>"),
+                  paste("<strong>Cantidade de pellets: </strong>", htmlEscape(Cantidade.de.pellets), "<br>"),
+                  paste("<strong>Concello: </strong>", htmlEscape(Concello), "<br>")
                 ),
                 color = "#1f78b4",
                 stroke = FALSE, fillOpacity = 0.5
@@ -322,21 +323,21 @@ server <- function(input, output, session) {
             HTML("<div style='padding-left: 20px;'>"),
             column(12, h3("Información adicional:")),
             column(12, HTML(paste(
-              "<strong>Praia: </strong>", info$Nome.da.praia..Concello, "<br>",
-              "<strong>Data da limpeza: </strong>", info$Marca.temporal, "<br>",
-              "<strong>Concello: </strong>", info$Concello, "<br>",
-              "<strong>Información adicional: </strong>", info$Información.adicional, "<br>"
+              "<strong>Praia: </strong>", htmlEscape(info$Nome.da.praia..Concello), "<br>",
+              "<strong>Data da limpeza: </strong>", htmlEscape(info$Marca.temporal), "<br>",
+              "<strong>Concello: </strong>", htmlEscape(info$Concello), "<br>",
+              "<strong>Información adicional: </strong>", htmlEscape(info$Información.adicional), "<br>"
             ))),
             column(12, h4("Imaxes dispoñibles:")),
             column(12, HTML(paste(
               lapply(1:length(links), function(i) {
                 HTML(paste(
-                  "<a href='", links[i], "' target='_blank'>Imaxe ", i, "</a><br>"
+                  "<a href='", htmlEscape(url_encode_vector(links[i])), "' target='_blank'>Imaxe ", i, "</a><br>"
                 ))
               }),
               collapse = ""
             ))),
-            if(!is.null(updateTimestamp$time)){
+            if (!is.null(updateTimestamp$time)) {
               column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
             }
           )
@@ -349,18 +350,19 @@ server <- function(input, output, session) {
             HTML("<div style='padding-left: 20px;'>"),
             column(12, h3("Convocatoria de Limpeza:")),
             column(12, HTML(paste(
-              "<strong>Data e hora: </strong>", info$Data," ", info$Hora, "<br>",
-              "<strong>Lugar de encontro: </strong>", info$Lugar.de.encontro, "<br>",
-              "<strong>Quen organiza a iniciativa: </strong>", info$Quen.organiza.a.iniciativa, "<br>",
-              "<strong>Contacto: </strong>", info$Contacto, "<br>",
-              tags$a("Cartaz", href = info$Cartaz), "<br>",
-              tags$a("Ligazón", href = info$Ligazón), "<br>"))),
-            if(!is.null(updateTimestamp$time)){
+              "<strong>Data e hora: </strong>", htmlEscape(info$Data), " ", htmlEscape(info$Hora), "<br>",
+              "<strong>Lugar de encontro: </strong>", htmlEscape(info$Lugar.de.encontro), "<br>",
+              "<strong>Quen organiza a iniciativa: </strong>", htmlEscape(info$Quen.organiza.a.iniciativa), "<br>",
+              "<strong>Contacto: </strong>", htmlEscape(info$Contacto), "<br>",
+              tags$a("Cartaz", href = htmlEscape(url_encode_vector(info$Cartaz))), "<br>",
+              tags$a("Ligazón", href = htmlEscape(url_encode_vector(info$Ligazón))), "<br>"))),
+            if (!is.null(updateTimestamp$time)) {
               column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
             }
           )
           return(sidebar)
         })
+
       }
     }
   })

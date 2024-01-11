@@ -8,13 +8,22 @@ library(tidygeocoder)
 library(httr)
 set_config(config(ssl_verifypeer = 0L))
 
-# Preprocesado da informacion -- Extraccion da xeolocalizacion a partir do nome da praia
-
 # Function to clean values
 clean_values <- function(value) {
   if (!grepl("^https?://", value)) {
     # Remove leading and trailing parentheses
     value <- gsub("^\\(|\\)$", "", value)
+    value <- gsub("(\\d),(\\d)", "\\1.\\2", value, perl = TRUE)
+    # Replace commas with dots
+    # #value <- gsub(",", ".", value)
+    #
+    # # Remove any spaces
+    # value <- gsub("\\s", "", value)
+
+    # Convert to numeric if needed
+    # Uncomment the next line if you want the output to be numeric
+    # output_numeric <- as.numeric(output_string)
+    return(value)
   }
   return(value)
 }
@@ -28,24 +37,34 @@ parse_dates <- function(timestamp){
   )
 }
 
+validate_coordinates <- function(lat, lon) {
+  if(is.na(lat) || is.na(lon)){
+    message("Invalid coordinates.")
+    return(NULL)
+  }
+  if (!is.numeric(lat) || !is.numeric(lon)) {
+    message("Invalid coordinates: Non-numeric values.")
+    return(NULL)
+  }
+
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    message("Invalid coordinates: Out of range.")
+    return(NULL)
+  }
+  return(0)
+}
+
 # Function to extract and convert coordinates from various formats
 extract_and_convert_coords <- function(coord_str) {
 
-  # Function to clean values
-  clean_values <- function(value) {
-    if (!grepl("^https?://", value)) {
-      # Remove leading and trailing parentheses
-      value <- gsub("^\\(|\\)$", "", value)
-    }
-    return(value)
-  }
-
+  if(is.na(coord_str)[[1]]) return(NULL)
   # Pattern for detecting and extracting coordinates in various formats
   pattern <- "\\(?\\s*(-?\\d{1,3}\\.?\\d{0,15})[°, ]*\\s*([NS])?[,\\s]*\\s*(-?\\d{1,3}\\.?\\d{0,15})[°, ]*\\s*([EW])?\\)?"
   matches <- regmatches(coord_str, gregexpr(pattern, coord_str))
 
   if (length(matches[[1]]) > 0) {
-    parts <- strsplit(matches[[1]][1], "[^0-9.-]+")[[1]]
+    parts <- strsplit(matches[[1]], ",")[[1]]
+
     lat <- as.numeric(parts[1])
     lon <- as.numeric(parts[2])
 
@@ -59,17 +78,32 @@ extract_and_convert_coords <- function(coord_str) {
   return(NULL)
 }
 
+# Function to apply URL encoding to a vector to prevent XSS or other input attacks
+url_encode_vector <- function(x) {
+  if(!is.na(x)) URLencode(x)
+}
+
 #Preprocesado da informacion -- Extraccion da xeolocalizacion a partir do nome da praia
 
 get_data <- function(update_all = FALSE){
 
   #Read google sheets data into R
-  options(gargle_oauth_cache =".secrets")
-  json_key <- Sys.getenv("GOOGLE_SHEETS_JSON_KEY") #name of the file on .secrets
-  googlesheets4::gs4_auth(email = "pelletmap@earnest-vine-377812.iam.gserviceaccount.com", path=json_key)
+  tryCatch(
+    {
+      options(gargle_oauth_cache =".secrets")
+      json_key <- Sys.getenv("GOOGLE_SHEETS_JSON_KEY") #name of the file on .secrets
+      googlesheets4::gs4_auth(email = "pelletmap@earnest-vine-377812.iam.gserviceaccount.com", path=json_key)
 
-  ss <- 'https://docs.google.com/spreadsheets/d/1E7K92pX4aS7CmGJWjYavEL8menX2gBkHoxtT3YTXwoc/'
-  data <- googlesheets4::read_sheet(ss)
+      ss <- 'https://docs.google.com/spreadsheets/d/1E7K92pX4aS7CmGJWjYavEL8menX2gBkHoxtT3YTXwoc/'
+      data <- googlesheets4::read_sheet(ss)
+      data$lat <- NA
+      data$lon <- NA
+    },
+    error = function(e) {
+      message("Error o cargar os datos...")
+      return()
+    }
+  )
 
   names(data) <- make.names(names(data))
 
@@ -82,6 +116,14 @@ get_data <- function(update_all = FALSE){
   # data already retrieved
   if (file.exists("praias.csv")) {
     praias <- read_csv("praias.csv")
+
+    missing_columns <- setdiff(names(praias), names(data))
+
+    for(col in missing_columns){
+      # if new cols are included in the updated dataset, add them to the historical to not break dataset rbind
+      praias[[col]] <- NA
+    }
+
     if(nrow(praias > 0)){
       praias$Marca.temporal <- sapply(praias$Marca.temporal, parse_dates)
       praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal, origin = "1970-01-01", tz = "UTC")
@@ -104,7 +146,6 @@ get_data <- function(update_all = FALSE){
   for (idx in seq_len(nrow(data))) {
 
     coord_str <- data$`Xeolocalización`[idx]
-
     coord_str <- sapply(coord_str, clean_values)
 
     value <- extract_and_convert_coords(coord_str)
@@ -125,17 +166,25 @@ get_data <- function(update_all = FALSE){
           geo_result <- geo(data$Concello[idx], method = "osm", full_results = FALSE)
         }
       }
-      data$lat[idx] <- geo_result$lat
-      data$lon[idx] <- geo_result$long
+      if(!is.null(validate_coordinates(geo_result$lat, geo_result$long))){
+        data$lat[idx] <- geo_result$lat
+        data$lon[idx] <- geo_result$long
+      }
+      else{
+        #### MISSING POSITION ######
+        data$lat[idx] <- NA
+        data$lon[idx] <- NA
+      }
     } else {
       data$lat[idx] <- value[1]
       data$lon[idx] <- value[2]
     }
   }
 
-  if(file.exists("praias.csv") & nrow(praias) > 0){
+  if(file.exists("praias.csv")){
     file.remove("praias.csv")
     data <- rbind(data, praias)
   }
+
   write_csv(data, "praias.csv")
 }
