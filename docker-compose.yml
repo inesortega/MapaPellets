@@ -15,6 +15,17 @@ services:
         environment:
           - GOOGLE_SHEETS_JSON_KEY=.secrets/earnest-vine-377812-6ae11f6184bc.json
           - ENV=docker
+    
+    nginx:
+      restart: always
+      image: nginx:latest
+      container_name: nginx-shiny
+      ports:
+        - 80:80
+      volumes:
+        - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      depends_on: 
+        - pellets-shiny
 
 networks:
   default:
