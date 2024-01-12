@@ -2,19 +2,34 @@ version: '3'
 services:
 
     pellets-shiny:
-        restart: always
-        image: pellets:latest
-        build: .
-        container_name: pellets-shiny
-        volumes:
-          - ./:/app
-        ports:
-          - 3838:3838/tcp
-        networks:
-          - default
-        environment:
-          - GOOGLE_SHEETS_JSON_KEY=.secrets/earnest-vine-377812-6ae11f6184bc.json
-          - ENV=docker
+      restart: always
+      image: pellets:latest
+      build: .
+      container_name: pellets-shiny
+      volumes:
+        - ./:/app
+      ports:
+        - 3838:3838/tcp
+      networks:
+        - default
+      environment:
+        - GOOGLE_SHEETS_JSON_KEY=.secrets/earnest-vine-377812-6ae11f6184bc.json
+        - ENV=docker
+
+    nginx:
+      build:
+        context: .
+        dockerfile: Dockerfile
+      ports:
+        - "80:80"
+        - "443:443"
+      volumes:
+        - /var/www/html
+      depends_on:
+        - pellets-shiny
+      networks:
+        - default
 
 networks:
   default:
+    driver: bridge

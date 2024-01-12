@@ -315,8 +315,18 @@ server <- function(input, output, session) {
 
       if(tipo != "Convocatoria de xornada de limpeza"){
 
-        image_links <- info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza
-        links <- sapply(image_links, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
+        links <- c()
+
+        if(tipo == "Hai pellets na praia"){
+          if(!is.na(info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza)){
+            links <- sapply(info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
+          }
+        }
+        else if(tipo ==  "Non hai pellets na praia"){
+          if(!is.na(info$Imaxes.adicionais)){
+            links <- sapply(info$Imaxes.adicionais, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
+          }
+        }
 
         output$sidebarContent <- renderUI({
           sidebar <- fluidRow(
@@ -331,9 +341,13 @@ server <- function(input, output, session) {
             column(12, h4("Imaxes dispoñibles:")),
             column(12, HTML(paste(
               lapply(1:length(links), function(i) {
-                HTML(paste(
-                  "<a href='", htmlEscape(url_encode_vector(links[i])), "' target='_blank'>Imaxe ", i, "</a><br>"
-                ))
+                if(!is.null(links[i])){
+                  HTML(paste(
+                    "<a href='", htmlEscape(url_encode_vector(links[i])), "' target='_blank'>Imaxe ", i, "</a><br>"
+                  ))
+                }else{
+                  paste("")
+                }
               }),
               collapse = ""
             ))),

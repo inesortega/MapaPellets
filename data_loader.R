@@ -14,15 +14,6 @@ clean_values <- function(value) {
     # Remove leading and trailing parentheses
     value <- gsub("^\\(|\\)$", "", value)
     value <- gsub("(\\d),(\\d)", "\\1.\\2", value, perl = TRUE)
-    # Replace commas with dots
-    # #value <- gsub(",", ".", value)
-    #
-    # # Remove any spaces
-    # value <- gsub("\\s", "", value)
-
-    # Convert to numeric if needed
-    # Uncomment the next line if you want the output to be numeric
-    # output_numeric <- as.numeric(output_string)
     return(value)
   }
   return(value)
@@ -92,7 +83,7 @@ get_data <- function(update_all = FALSE){
     {
       options(gargle_oauth_cache =".secrets")
       json_key <- Sys.getenv("GOOGLE_SHEETS_JSON_KEY") #name of the file on .secrets
-      googlesheets4::gs4_auth(email = "pelletmap@earnest-vine-377812.iam.gserviceaccount.com", path=json_key)
+      googlesheets4::gs4_auth(path=json_key)
 
       ss <- 'https://docs.google.com/spreadsheets/d/1E7K92pX4aS7CmGJWjYavEL8menX2gBkHoxtT3YTXwoc/'
       data <- googlesheets4::read_sheet(ss)
@@ -117,7 +108,7 @@ get_data <- function(update_all = FALSE){
   if (file.exists("praias.csv")) {
     praias <- read_csv("praias.csv")
 
-    missing_columns <- setdiff(names(praias), names(data))
+    missing_columns <- setdiff(names(data), names(praias))
 
     for(col in missing_columns){
       # if new cols are included in the updated dataset, add them to the historical to not break dataset rbind
@@ -182,8 +173,8 @@ get_data <- function(update_all = FALSE){
   }
 
   if(file.exists("praias.csv")){
-    file.remove("praias.csv")
     data <- rbind(data, praias)
+    file.remove("praias.csv")
   }
 
   write_csv(data, "praias.csv")
