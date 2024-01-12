@@ -92,20 +92,30 @@ server <- function(input, output, session) {
   markerInfo <- reactiveValues(clickedMarker = NULL)
 
   observe({
-    invalidateLater(60000) # 600000 = 10min
-    showNotification(paste("Actualizando datos...", Sys.time()), duration = 10)
-    get_data()
+    invalidateLater(300000) # 300000 = 5min
+    showNotification(paste("Actualizando datos..."), duration = 10)
+    tryCatch({
+      get_data()
+    },
+    error = function(e) {
+      showNotification("Error cargando datos...", duration = NULL, type = "error" )
+    })
   })
 
   last_run_time <- Sys.time() # Initialize the last run time
   observe({
+    invalidateLater(600) # check every second if update needed...
     current_time <- Sys.time()
     time_since_last_run <- as.numeric(difftime(current_time, last_run_time, units = "hours"))
-
-    if (time_since_last_run >= 6) {  # Check if 6 hours have passed
-      showNotification(paste("Actualizando datos históricos...", current_time), duration = 60)
-      get_data(update_all = TRUE)
+    if (time_since_last_run >= 1) {  # Check if 1 hours have passed
       last_run_time <- current_time  # Update the last run time
+      showNotification(paste("Actualizando datos históricos..."), duration = 60)
+      tryCatch({
+        get_data(update_all = TRUE)
+      },
+      error = function(e) {
+        showNotification("Error cargando datos...", duration = NULL, type = "error" )
+      })
     }
   })
 
