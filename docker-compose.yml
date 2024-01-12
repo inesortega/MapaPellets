@@ -3,7 +3,7 @@ services:
 
   pellets-shiny:
     restart: always
-    image: pellets:latest
+    image: harbor.gradiant.org/iortega-pellets/pellets:latest
     build: .
     container_name: pellets-shiny
     volumes:
@@ -15,17 +15,22 @@ services:
     environment:
       - GOOGLE_SHEETS_JSON_KEY=.secrets/earnest-vine-377812-6ae11f6184bc.json
       - ENV=docker
-      
+
   nginx:
     restart: always
     image: nginx:latest
-    container_name: nginx-shiny
+    container_name: nginx
     ports:
       - 80:80
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /etc/letsencrypt/live/pellets.10cal.ovh/fullchain.pem:/etc/certs/fullchain.pem:ro
+      - /etc/letsencrypt/live/pellets.10cal.ovh/privkey.pem:/etc/certs/privkey.pem:ro
     depends_on: 
       - pellets-shiny
+    networks:
+      - default
+
 networks:
   default:
     driver: bridge

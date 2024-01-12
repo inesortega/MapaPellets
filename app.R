@@ -68,6 +68,12 @@ ui <- dashboardPage(skin = "black",
                " | Contact: ", tags$a("datospellets@gmail.com", href = "datospellets@gmail.com")
              )
       ),
+      column(12,
+             tags$footer(
+               style = "text-align: center; padding: -10px; background-color: #f0f0f0;",
+               HTML(paste("Este proxecto é posible grazas a colaboración e recollida de datos de voluntarias, de Noia Limpa, e a cesión e recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
+             )
+      )
     ),
     useShinyjs(),
   ),
