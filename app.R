@@ -57,7 +57,7 @@ ui <- dashboardPage(skin = "black",
     fluidRow(
       column(12, h4("Mapa actualizado da situación das praias galegas")),
       column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets. O panel lateral mostra a última actualización dos datos e información adicional sobre cada punto rexistrado.")),
-      column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios e entidades colaborativas a través deste ", "<a href='https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse' target='_blank'>formulario</a>"))),
+      column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios e entidades colaboradoras a través deste ", "<a href='https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse' target='_blank'>formulario</a>", "<br>"))),
       column(12, leafletOutput("mymap"))  # Adjust the width of the map
     ),
     fluidRow(
@@ -71,7 +71,7 @@ ui <- dashboardPage(skin = "black",
       column(12,
              tags$footer(
                style = "text-align: center; padding: -10px; background-color: #f0f0f0;",
-               HTML(paste("Este proxecto é posible grazas a colaboración e recollida de datos de voluntarias, de Noia Limpa, e a cesión e recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
+               HTML(paste("Este proxecto é posible grazas a colaboración e recollida de datos de voluntarias, de Noia Limpa, e a cesión de recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
              )
       )
     ),
