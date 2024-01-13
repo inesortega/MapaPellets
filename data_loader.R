@@ -108,7 +108,7 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
 
   # data already retrieved
   if (file.exists("praias.csv")) {
-    praias <- read_csv("praias.csv")
+    praias <- read_csv("praias.csv",  show_col_types = FALSE)
 
     missing_columns <- setdiff(names(data), names(praias))
 
@@ -118,6 +118,7 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
     }
 
     if(nrow(praias) > 0){
+
       praias$Marca.temporal <- sapply(praias$Marca.temporal, parse_dates)
       praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal, origin = "1970-01-01", tz = "UTC")
 
@@ -125,23 +126,32 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
 
       if(update_all == FALSE){
         # Get only new data
-        data <- data %>% filter(as.POSIXct(data$Marca.temporal) > max_date)
+        indexes <- which(as.POSIXct(data$Marca.temporal) > max_date)
       }
       else if(update_all == TRUE){
         # Get registers from current day
         message("Updating today's data...")
         today <- format(Sys.Date(), format = "%Y-%m-%d")
-        data <- data %>% filter(format(data$Marca.temporal, format = "%Y-%m-%d") == today)
+        indexes <- which(format(data$Marca.temporal, format = "%Y-%m-%d") == today)
       }
       else if(update_all_dataset == TRUE){
         # Update entire dataset from the cloud
         message("Retrieving entire dataset...")
+        indexes <- as.numeric(rownames(data))
       }
+
+      # assign already learned lat / lon values to data
+      current_indexes <- as.numeric(rownames(praias))
+      data[current_indexes, ]$lat <- praias[current_indexes, ]$lat
+      data[current_indexes, ]$lon <- praias[current_indexes, ]$lon
+
     }
   }
-  data <- data %>% filter(!all(is.na(.)))
-  message(paste("Processing ", nrow(data), " rows"))
-  for (idx in seq_len(nrow(data))) {
+
+  message(paste("Processing ", length(indexes), " rows"))
+
+  ### Update required data ####
+  for (idx in indexes) {
 
     coord_str <- data$`Xeolocalización`[idx]
     coord_str <- sapply(coord_str, clean_values)
@@ -168,11 +178,6 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
         data$lat[idx] <- geo_result$lat
         data$lon[idx] <- geo_result$long
       }
-      else{
-        #### MISSING POSITION ######
-        data$lat[idx] <- NA
-        data$lon[idx] <- NA
-      }
     } else {
       data$lat[idx] <- value[1]
       data$lon[idx] <- value[2]
@@ -180,7 +185,6 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
   }
 
   if(file.exists("praias.csv")){
-    data <- bind_rows(praias, data) %>% distinct(Marca.temporal, Nome.da.praia..Concello, .keep_all = TRUE)
     file.remove("praias.csv")
   }
   write_csv(data, "praias.csv")

@@ -102,7 +102,7 @@ server <- function(input, output, session) {
     showNotification(paste("Actualizando datos..."), duration = 10)
     tryCatch({
       get_data()
-      data <- read_csv("praias.csv")
+      data <- read_csv("praias.csv", show_col_types = FALSE)
     },
     error = function(e) {
       showNotification("Error cargando datos...", duration = NULL, type = "error" )
@@ -129,7 +129,7 @@ server <- function(input, output, session) {
   data <- reactive({
     updateTimestamp$time <- Sys.time()
 
-    all_data <- read_csv("praias.csv")
+    all_data <- read_csv("praias.csv", show_col_types = FALSE)
     all_data$Marca.temporal <- as.Date(all_data$Marca.temporal)
 
     # Filter data based on selected date range
