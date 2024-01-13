@@ -98,7 +98,7 @@ server <- function(input, output, session) {
   markerInfo <- reactiveValues(clickedMarker = NULL)
 
   observe({
-    invalidateLater(300000) # 300000 = 5min
+    invalidateLater(600000) # 300000 = 5min
     showNotification(paste("Actualizando datos..."), duration = 10)
     tryCatch({
       get_data()
@@ -110,7 +110,7 @@ server <- function(input, output, session) {
 
   last_run_time <- Sys.time() # Initialize the last run time
   observe({
-    invalidateLater(600) # check every second if update needed...
+    invalidateLater(6000) # check every minute if update needed...
     current_time <- Sys.time()
     time_since_last_run <- as.numeric(difftime(current_time, last_run_time, units = "hours"))
     if (time_since_last_run >= 1) {  # Check if 1 hours have passed
@@ -404,7 +404,6 @@ server <- function(input, output, session) {
 
 }
 
-message(Sys.getenv("ENV"))
 if(Sys.getenv("ENV") == "docker"){
   options(shiny.host = '0.0.0.0')
   options(shiny.port = 3838)

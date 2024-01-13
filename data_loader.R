@@ -76,7 +76,7 @@ url_encode_vector <- function(x) {
 
 #Preprocesado da informacion -- Extraccion da xeolocalizacion a partir do nome da praia
 
-get_data <- function(update_all = FALSE){
+get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
 
   #Read google sheets data into R
   tryCatch(
@@ -89,6 +89,8 @@ get_data <- function(update_all = FALSE){
       data <- googlesheets4::read_sheet(ss)
       data$lat <- NA
       data$lon <- NA
+
+      message(paste("Rows in cloud dataset = ", nrow(data)))
     },
     error = function(e) {
       message("Error o cargar os datos...")
@@ -115,24 +117,29 @@ get_data <- function(update_all = FALSE){
       praias[[col]] <- NA
     }
 
-    if(nrow(praias > 0)){
+    if(nrow(praias) > 0){
       praias$Marca.temporal <- sapply(praias$Marca.temporal, parse_dates)
       praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal, origin = "1970-01-01", tz = "UTC")
 
       max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in praias.csv
 
       if(update_all == FALSE){
+        # Get only new data
         data <- data %>% filter(as.POSIXct(data$Marca.temporal) > max_date)
       }
-      else{
+      else if(update_all == TRUE){
         # Get registers from current day
         message("Updating today's data...")
         today <- format(Sys.Date(), format = "%Y-%m-%d")
         data <- data %>% filter(format(data$Marca.temporal, format = "%Y-%m-%d") == today)
       }
+      else if(update_all_dataset == TRUE){
+        # Update entire dataset from the cloud
+        message("Retrieving entire dataset...")
+      }
     }
   }
-
+  data <- data %>% filter(!all(is.na(.)))
   message(paste("Processing ", nrow(data), " rows"))
   for (idx in seq_len(nrow(data))) {
 
@@ -173,9 +180,8 @@ get_data <- function(update_all = FALSE){
   }
 
   if(file.exists("praias.csv")){
-    data <- rbind(data, praias)
+    data <- bind_rows(praias, data) %>% distinct(c(Marca.temporal, data$Nome.da.praia..Concello), .keep_all = TRUE)
     file.remove("praias.csv")
   }
-
   write_csv(data, "praias.csv")
 }
