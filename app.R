@@ -98,10 +98,11 @@ server <- function(input, output, session) {
   markerInfo <- reactiveValues(clickedMarker = NULL)
 
   observe({
-    invalidateLater(600000) # 300000 = 5min
+    invalidateLater(300000) # 300000 = 5min
     showNotification(paste("Actualizando datos..."), duration = 10)
     tryCatch({
       get_data()
+      data <- read_csv("praias.csv")
     },
     error = function(e) {
       showNotification("Error cargando datos...", duration = NULL, type = "error" )
@@ -110,7 +111,7 @@ server <- function(input, output, session) {
 
   last_run_time <- Sys.time() # Initialize the last run time
   observe({
-    invalidateLater(6000) # check every minute if update needed...
+    invalidateLater(60000) # check every minute if update needed...
     current_time <- Sys.time()
     time_since_last_run <- as.numeric(difftime(current_time, last_run_time, units = "hours"))
     if (time_since_last_run >= 1) {  # Check if 1 hours have passed

@@ -89,8 +89,8 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
       data <- googlesheets4::read_sheet(ss)
       data$lat <- NA
       data$lon <- NA
-
       message(paste("Rows in cloud dataset = ", nrow(data)))
+
     },
     error = function(e) {
       message("Error o cargar os datos...")
@@ -180,7 +180,7 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
   }
 
   if(file.exists("praias.csv")){
-    data <- bind_rows(praias, data) %>% distinct(c(Marca.temporal, data$Nome.da.praia..Concello), .keep_all = TRUE)
+    data <- bind_rows(praias, data) %>% distinct(Marca.temporal, Nome.da.praia..Concello, .keep_all = TRUE)
     file.remove("praias.csv")
   }
   write_csv(data, "praias.csv")
