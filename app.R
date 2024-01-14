@@ -100,38 +100,12 @@ server <- function(input, output, session) {
   # Create a reactiveValues object to store the clicked marker information
   markerInfo <- reactiveValues(clickedMarker = NULL)
 
-  observe({
-    invalidateLater(60000) # 300000 = 5min
-    showNotification(paste("Actualizando datos..."), duration = 10)
-    tryCatch({
-       get_data()
-     },
-     error = function(e) {
-       showNotification("Error cargando datos...", duration = NULL, type = "error" )
-     })
-   })
-
-
-  observe({
-     invalidateLater(60000) # check every minute if update needed...
-     current_time <- Sys.time()
-     time_since_last_run <- as.numeric(difftime(current_time, last_run_time$time, units = "hours"))
-     if (time_since_last_run >= 1) {  # Check if 1 hours have passed
-       last_run_time$time <- current_time  # Update the last run time
-       showNotification(paste("Actualizando datos históricos..."), duration = 60)
-       tryCatch({
-         get_data(update_all = TRUE)
-       },
-       error = function(e) {
-         showNotification("Error cargando datos...", duration = NULL, type = "error" )
-       })
-     }
-   })
-
   data <- reactive({
+    invalidateLater(350000) #Force update 5 min...
+    showNotification(("Actualizando datos..."), duration = 10)
     updateTimestamp$time <- Sys.time()
     tryCatch({
-      all_data <- read_csv("praias.csv", show_col_types = FALSE)
+      all_data <- read_csv("./data/praias.csv", show_col_types = FALSE)
       all_data$Marca.temporal <- as.Date(all_data$Marca.temporal)
     }, error = function(e){
       message("Error loading data...")

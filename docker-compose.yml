@@ -1,27 +1,47 @@
 version: '3'
 services:
 
-  pellets-shiny:
+  data_loader:
     restart: always
     image: harbor.gradiant.org/iortega-pellets/pellets:latest
+    #image: pellets:latest
     build: .
-    container_name: pellets-shiny
+    container_name: data_loader
     volumes:
       - ./:/app
-    ports:
-      - 3838:3838/tcp
+      - praias:/app/data
     networks:
       - default
     environment:
       - GOOGLE_SHEETS_JSON_KEY=.secrets/earnest-vine-377812-6ae11f6184bc.json
       - ENV=docker
+    command: ["R", "-e", "source('/app/update_historical.R')"]
 
+  pellets-shiny:
+    restart: always
+    image: harbor.gradiant.org/iortega-pellets/pellets:latest
+    #image: pellets:latest
+    build: .
+    container_name: pellets-shiny
+    volumes:
+      - praias:/app/data
+    ports:
+      - 3838:3838/tcp
+    networks:
+      - default
+    environment:
+      - ENV=docker
+    depends_on:
+      - data_loader
+    command: ["R", "-e", "shiny::runApp('/app', port = 3838)"]
+    
   nginx:
     restart: always
     image: nginx:latest
     container_name: nginx
     ports:
       - 80:80
+      - 443:443
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt/live/pellets.10cal.ovh/fullchain.pem:/etc/certs/fullchain.pem:ro
@@ -31,6 +51,9 @@ services:
     networks:
       - default
 
-networks:
+  networks:
   default:
     driver: bridge
+
+volumes:
+  praias:

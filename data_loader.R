@@ -107,8 +107,8 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
   data$Marca.temporal <- as.POSIXct(data$Marca.temporal, origin = "1970-01-01", tz = "UTC")
 
   # data already retrieved
-  if (file.exists("praias.csv")) {
-    praias <- read_csv("praias.csv",  show_col_types = FALSE)
+  if (file.exists("./data/praias.csv")) {
+    praias <- read_csv("./data/praias.csv",  show_col_types = FALSE)
 
     missing_columns <- setdiff(names(data), names(praias))
 
@@ -124,7 +124,7 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
 
       if(update_all == FALSE){
         # Get only new data
-        max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in praias.csv
+        max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in ./data/praias.csv
         indexes <- which(as.POSIXct(data$Marca.temporal) > max_date)
       }
       else if(update_all == TRUE){
@@ -139,11 +139,9 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
         indexes <- as.numeric(rownames(data))
       }
 
-      # assign already learned lat / lon values to data
+      # assign already learned or processed values to data
       current_indexes <- as.numeric(rownames(praias))
-      data[current_indexes, ]$lat <- praias[current_indexes, ]$lat
-      data[current_indexes, ]$lon <- praias[current_indexes, ]$lon
-
+      data[current_indexes, ] <- praias[current_indexes, ]
     }
   }
 
@@ -183,8 +181,8 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
     }
   }
 
-  if(file.exists("praias.csv")){
-    file.remove("praias.csv")
+  if(file.exists("./data/praias.csv")){
+    file.remove("./data/praias.csv")
   }
-  write_csv(data, "praias.csv")
+  write_csv(data, "./data/praias.csv")
 }
