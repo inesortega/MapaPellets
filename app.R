@@ -18,120 +18,124 @@ end_date <- Sys.Date()
 
 values <- as.list(seq(start_date, end_date, by = "days"))
 
-ui <- dashboardPage(skin = "black",
-  dashboardHeader(
-    title = "Unha Vez Máis",
-    titleWidth = 320
-    ),
-  dashboardSidebar(
-    width = 320,
-    sliderInput(
-      inputId = "dateRange",
-      label = "Filtrado por data:",
-      min = as.Date("2024-01-06"),
-      max = Sys.Date(),
-      value = c(Sys.Date() -1, Sys.Date())),
-    checkboxGroupInput("legendFilter", "Filtrar por tipo de actualización:",
-                       choices = c(
-                         "Hai pellets na praia" = "Hai pellets na praia",
-                         "Non hai pellets na praia" = "Non hai pellets na praia",
-                         "Xa non hai (a praia quedaba limpa cando se encheu o formulario)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
-                         "Convocatoria de xornada de limpeza" = "Convocatoria de xornada de limpeza"
-                       ),
-                       selected = c(
-                         "Hai pellets na praia",
-                         "Non hai pellets na praia",
-                         "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
-                         "Convocatoria de xornada de limpeza"
-                       )),
-    conditionalPanel(
-      collapsed = TRUE,
-      condition = "input.mymap_marker_click",
-      uiOutput("sidebarContent")
-    )
+sidebar <- dashboardSidebar(
+  width = 330,
+  tags$style(HTML(".sidebar-menu { margin-bottom: 20px; }")),  # Add margin to sidebar-menu
+  sidebarMenu(
+    menuItem("Mapa actualizado", tabName = "map", icon = icon("dashboard")),
+    #menuItem("Datos e estadísticas", icon = icon("th"), tabName = "info"),
+    menuItem("Formulario de recollida de datos", icon = icon("info"), newtab = TRUE, href = "https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse")
   ),
-  dashboardBody(
-    tags$head(tags$style(HTML('.skin-blue .main-header .logo {background-color: #3c8dbc;}.skin-blue .main-header .logo:hover {background-color: #3c8dbc;}'))),
-    # Adjust the size of the map container
-    tags$style(HTML(".leaflet { height: calc(100vh - 200px) !important; }")),  # Set map height to 100% viewport height
-    fluidRow(
-      column(12, h4("Mapa actualizado da situación das praias galegas")),
-      column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets. O panel lateral mostra a última actualización dos datos e información adicional sobre cada punto rexistrado.")),
-      column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios e entidades colaboradoras a través deste ", "<a href='https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse' target='_blank'>formulario</a>", "<br>"))),
-      column(12, leafletOutput("mymap"))  # Adjust the width of the map
-    ),
-    fluidRow(
-      column(12,
-             tags$footer(
-               style = "text-align: center; padding: 10px; background-color: #f0f0f0;",
-               "Author: ", tags$a("Inés Ortega Fernández", href = "https://inesortega.github.io/"),
-               " | Contact: ", tags$a("datospellets@gmail.com", href = "datospellets@gmail.com")
-             )
-      ),
-      column(12,
-             tags$footer(
-               style = "text-align: center; padding: -10px; background-color: #f0f0f0;",
-               HTML(paste("Este proxecto é posible grazas a colaboración e recollida de datos de voluntarias, de Noia Limpa, e a cesión de recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
-             )
-      )
-    ),
-    useShinyjs(),
+  sliderInput(
+    inputId = "dateRange",
+    label = "Filtrado por data:",
+    min = as.Date("2024-01-06"),
+    max = Sys.Date() + 2,
+    value = c(Sys.Date() - 1, Sys.Date() + 1)
   ),
-  tags$head(
-    tags$style(HTML(".main-sidebar {background-color:  #424b57 !important; color: #000000 !important}"))
+  tags$style(HTML(".shiny-input-container { margin-bottom: 10px; }")),  # Add margin to shiny-input-container
+  checkboxGroupInput("legendFilter", "Filtrar por tipo de actualización:",
+                     choices = c(
+                       "Hai pellets na praia" = "Hai pellets na praia",
+                       "Non hai pellets na praia" = "Non hai pellets na praia",
+                       "Xa non hai (a praia quedaba limpa cando se encheu o formulario)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
+                       "Convocatoria de xornada de limpeza" = "Convocatoria de xornada de limpeza"
+                     ),
+                     selected = c(
+                       "Hai pellets na praia",
+                       "Non hai pellets na praia",
+                       "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
+                       "Convocatoria de xornada de limpeza"
+                     )
+  ),
+  conditionalPanel(
+    collapsed = TRUE,
+    condition = "input.mymap_marker_click",
+    uiOutput("sidebarContent")
   )
 )
+body <- dashboardBody(
+  tags$head(tags$style(HTML('.skin-blue .main-header .logo {background-color: #3c8dbc;} .skin-blue .main-header .logo:hover {background-color: #3c8dbc;}'))),
+  tags$style(HTML(".leaflet { height: calc(100vh - 150px) !important; }")),
+  tags$style(HTML(".treeview-menu>li>a { padding-left: 10px; }")),  # Add padding to sidebarMenu icons
+  tabItems(
+    tabItem(tabName = "map",
+        column(12, h4("Mapa actualizado da situación das praias galegas")),
+        column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets.")),
+        column(12, leafletOutput("mymap")),
+        column(12,
+               tags$footer(
+                 style = "text-align: center; padding:-10px; background-color: #f0f0f0;",
+                 "Author: ", tags$a("Inés Ortega Fernández", href = "https://inesortega.github.io/"),
+                 " | Contact: ", tags$a("datospellets@gmail.com", href = "datospellets@gmail.com")
+               )),
+        column(12,
+               tags$footer(
+                 style = "text-align: center; padding: -10px; background-color: #f0f0f0;",
+                 HTML(paste("Este proxecto é posible grazas a colaboración e recollida de datos de voluntarias, de Noia Limpa, e a cesión de recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
+               ))
+    ),
+    tabItem(tabName = "info",
+        column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios e entidades colaboradoras a través deste ", "<a href='https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse' target='_blank'>formulario</a>", "<br>")))
+    )
+  ),
+  useShinyjs()
+)
 
-
-color_palette <- c("Hai pellets na praia" = "#e31a1c",
-                   "Non hai pellets na praia" = "#33a02c",
-                   "Convocatoria de xornada de limpeza" = "#701796",
-                   "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"= "#1f78b4")
-
+ui <- dashboardPage(skin = "black",
+      dashboardHeader(
+        title = "Unha Vez Máis",
+        titleWidth = 330
+      ),
+      sidebar = sidebar,
+      body = body
+)
 
 server <- function(input, output, session) {
 
   updateTimestamp <- reactiveValues(time = Sys.time())
+  last_run_time <- reactiveValues(time = Sys.time())
   isFirstRun <- reactiveVal(TRUE)
 
   # Create a reactiveValues object to store the clicked marker information
   markerInfo <- reactiveValues(clickedMarker = NULL)
 
   observe({
-    invalidateLater(300000) # 300000 = 5min
+    invalidateLater(60000) # 300000 = 5min
     showNotification(paste("Actualizando datos..."), duration = 10)
     tryCatch({
-      get_data()
-      data <- read_csv("praias.csv", show_col_types = FALSE)
-    },
-    error = function(e) {
-      showNotification("Error cargando datos...", duration = NULL, type = "error" )
-    })
-  })
+       get_data()
+     },
+     error = function(e) {
+       showNotification("Error cargando datos...", duration = NULL, type = "error" )
+     })
+   })
 
-  last_run_time <- Sys.time() # Initialize the last run time
+
   observe({
-    invalidateLater(60000) # check every minute if update needed...
-    current_time <- Sys.time()
-    time_since_last_run <- as.numeric(difftime(current_time, last_run_time, units = "hours"))
-    if (time_since_last_run >= 1) {  # Check if 1 hours have passed
-      last_run_time <- current_time  # Update the last run time
-      showNotification(paste("Actualizando datos históricos..."), duration = 60)
-      tryCatch({
-        get_data(update_all = TRUE)
-      },
-      error = function(e) {
-        showNotification("Error cargando datos...", duration = NULL, type = "error" )
-      })
-    }
-  })
+     invalidateLater(60000) # check every minute if update needed...
+     current_time <- Sys.time()
+     time_since_last_run <- as.numeric(difftime(current_time, last_run_time$time, units = "hours"))
+     if (time_since_last_run >= 1) {  # Check if 1 hours have passed
+       last_run_time$time <- current_time  # Update the last run time
+       showNotification(paste("Actualizando datos históricos..."), duration = 60)
+       tryCatch({
+         get_data(update_all = TRUE)
+       },
+       error = function(e) {
+         showNotification("Error cargando datos...", duration = NULL, type = "error" )
+       })
+     }
+   })
 
   data <- reactive({
     updateTimestamp$time <- Sys.time()
-
-    all_data <- read_csv("praias.csv", show_col_types = FALSE)
-    all_data$Marca.temporal <- as.Date(all_data$Marca.temporal)
-
+    tryCatch({
+      all_data <- read_csv("praias.csv", show_col_types = FALSE)
+      all_data$Marca.temporal <- as.Date(all_data$Marca.temporal)
+    }, error = function(e){
+      message("Error loading data...")
+    })
     # Filter data based on selected date range
     if (!is.null(input$dateRange)) {
       start_date <- input$dateRange[1]
@@ -145,9 +149,7 @@ server <- function(input, output, session) {
     if(nrow(filtered_data) > 0){
       filtered_data$id <- seq.int(nrow(filtered_data))
     }
-
     filtered_data
-
   })
 
   # Create a reactive object for each type
@@ -186,11 +188,11 @@ server <- function(input, output, session) {
       setView(lng = -8.1, lat = 42.5, zoom = 7) %>%
       addLegend(
         position = "bottomright",
-        colors = c("#e31a1c", "#33a02c", "#701796", "#1f78b4"),  # Colors for the four categories
-        labels = c(paste("Hai pellets na praia (", nrow(data_hai_pellets()), ")"),
-                   paste("Non hai pellets na praia (", nrow(data_non_hai_pellets()), ")"),
-                   paste("Convocatoria de xornada de limpeza(", nrow(data_convocatoria()), ")"),
-                   paste("Xa non hai (quedou limpa) (", nrow(data_xa_non_hai()), ")")),
+        colors = c("#e31a1c", "#33a02c", "#F5A618", "#1f78b4"),  # Colors for the four categories
+        labels = c(paste("Hai pellets na praia (", nrow(data_hai_pellets()), ")", sep = ""),
+                   paste("Non hai pellets na praia (", nrow(data_non_hai_pellets()), ")", sep = ""),
+                   paste("Convocatoria de xornada de limpeza (", nrow(data_convocatoria()), ")", sep = ""),
+                   paste("Xa non hai (quedou limpa), (", nrow(data_xa_non_hai()), ")", sep = "")),
         title = "Tipo de información e reconto por tipo"
       )
   })
@@ -271,7 +273,7 @@ server <- function(input, output, session) {
                 label = ~Nome.da.praia..Concello,
                 layerId = ~id,
                 radius = 10,
-                color = "#701796",
+                color = "#F5A618",
                 popup = ~paste(
                   paste("<strong>Data da convocatoria: </strong>", htmlEscape(as.Date(Data)), " ", htmlEscape(Hora), "<br>"),
                   paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
@@ -348,14 +350,14 @@ server <- function(input, output, session) {
         output$sidebarContent <- renderUI({
           sidebar <- fluidRow(
             HTML("<div style='padding-left: 20px;'>"),
-            column(12, h3("Información adicional:")),
+            column(12, h4("Información adicional:")),
             column(12, HTML(paste(
               "<strong>Praia: </strong>", htmlEscape(info$Nome.da.praia..Concello), "<br>",
               "<strong>Data da limpeza: </strong>", htmlEscape(info$Marca.temporal), "<br>",
               "<strong>Concello: </strong>", htmlEscape(info$Concello), "<br>",
               "<strong>Información adicional: </strong>", htmlEscape(info$Información.adicional), "<br>"
             ))),
-            column(12, h4("Imaxes dispoñibles:")),
+            column(12, h5("Imaxes dispoñibles:")),
             column(12, HTML(paste(
               lapply(1:length(links), function(i) {
                 if(!is.null(links[i])){

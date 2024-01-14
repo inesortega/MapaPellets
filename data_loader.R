@@ -93,7 +93,7 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
 
     },
     error = function(e) {
-      message("Error o cargar os datos...")
+      message(paste("Error o cargar os datos: "), e)
       return()
     }
   )
@@ -122,10 +122,9 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
       praias$Marca.temporal <- sapply(praias$Marca.temporal, parse_dates)
       praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal, origin = "1970-01-01", tz = "UTC")
 
-      max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in praias.csv
-
       if(update_all == FALSE){
         # Get only new data
+        max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in praias.csv
         indexes <- which(as.POSIXct(data$Marca.temporal) > max_date)
       }
       else if(update_all == TRUE){
