@@ -8,8 +8,7 @@ services:
     build: .
     container_name: data_loader
     volumes:
-      - ./:/app
-      - praias:/app/data
+      - ./data/praias.csv:/app/data
     networks:
       - default
     environment:
@@ -24,7 +23,7 @@ services:
     build: .
     container_name: pellets-shiny
     volumes:
-      - praias:/app/data
+      - ./data:/app/data
     ports:
       - 3838:3838/tcp
     networks:
@@ -51,9 +50,6 @@ services:
     networks:
       - default
 
-  networks:
+networks:
   default:
     driver: bridge
-
-volumes:
-  praias:

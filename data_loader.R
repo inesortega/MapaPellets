@@ -122,12 +122,7 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
       praias$Marca.temporal <- sapply(praias$Marca.temporal, parse_dates)
       praias$Marca.temporal <- as.POSIXct(praias$Marca.temporal, origin = "1970-01-01", tz = "UTC")
 
-      if(update_all == FALSE){
-        # Get only new data
-        max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in ./data/praias.csv
-        indexes <- which(as.POSIXct(data$Marca.temporal) > max_date)
-      }
-      else if(update_all == TRUE){
+      if(update_all == TRUE){
         # Get registers from current day
         message("Updating today's data...")
         today <- format(Sys.Date(), format = "%Y-%m-%d")
@@ -138,10 +133,16 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
         message("Retrieving entire dataset...")
         indexes <- as.numeric(rownames(data))
       }
+      else if(update_all_dataset == FALSE && update_all == FALSE){
+        # Get only new data
+        max_date <- max(as.POSIXct(praias$Marca.temporal)) # Latest register processed in ./data/praias.csv
+        indexes <- which(as.POSIXct(data$Marca.temporal) > max_date)
+      }
 
       # assign already learned or processed values to data
       current_indexes <- as.numeric(rownames(praias))
-      data[current_indexes, ] <- praias[current_indexes, ]
+      data[current_indexes, ]$lat <- praias[current_indexes, ]$lat
+      data[current_indexes, ]$lon <- praias[current_indexes, ]$lon
     }
   }
 

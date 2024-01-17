@@ -12,6 +12,8 @@ pkgs <- c(
     'shiny',
     'tidygeocoder',
     'htmltools',
-    'readr'
+    'readr',
+    'ggplot2',
+    'shinycssloaders'
 )
 install.packages(pkgs)
