@@ -23,7 +23,8 @@ sidebar <- dashboardSidebar(
     menuItem("Mapa en tempo real", tabName = "map"),
     menuItem("Datos e estadísticas", tabName = "info", badgeLabel = "Novo!", badgeColor = "green"),
     #menuItem("Formulario de recollida de datos", icon = icon("info"), newtab = TRUE, href = "https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse"),
-    menuItem("Filtros", tabName = "filter",
+    menuItem("Filtrado de información", tabName = "filter",
+             tags$style(HTML(".sidebar-menu .treeview-menu { padding-top: 5px; padding-bottom: 5px }")),  # Add margin to shiny-input-container
              sliderInput(
                inputId = "dateRange",
                label = "Filtrado por data:",
@@ -31,25 +32,24 @@ sidebar <- dashboardSidebar(
                max = Sys.Date() + 2,
                value = c(Sys.Date() - 2, Sys.Date() + 1)
              ),
-             selectInput(inputId = "select_concello", label = "Concello", multiple = TRUE, choices=c(), selected=""),
-             tags$style(HTML(".shiny-input-container { margin-bottom: 10px; }")),  # Add margin to shiny-input-container
-             checkboxGroupInput("legendFilter",
-                  "Filtrar por tipo de actualización:",
-                  choices = c(
-                    "Hai pellets na praia" = "Hai pellets na praia",
-                    "Non hai pellets na praia" = "Non hai pellets na praia",
-                    "Xa non hai (a praia quedaba limpa cando se encheu o formulario)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
-                    "Convocatoria de xornada de limpeza" = "Convocatoria de xornada de limpeza",
-                    "Outras Convocatorias" = "Outras Convocatorias"
-                  ),
-                  selected = c(
-                    "Hai pellets na praia",
-                    "Non hai pellets na praia",
-                    "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
-                    "Convocatoria de xornada de limpeza",
-                    "Outras Convocatorias"
-                  )
-             )),
+             pickerInput("legendFilter",
+                         "Filtrar por tipo de actualización:",
+                         choices = c(
+                           "Hai pellets na praia" = "Hai pellets na praia",
+                           "Non hai pellets na praia" = "Non hai pellets na praia",
+                           "Xa non hai (a praia quedaba limpa cando se encheu o formulario)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
+                           "Convocatoria de xornada de limpeza" = "Convocatoria de xornada de limpeza",
+                           "Outras Convocatorias" = "Outras Convocatorias"
+                         ), multiple = TRUE,
+                         selected = c(
+                           "Hai pellets na praia",
+                           "Non hai pellets na praia",
+                           "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
+                           "Convocatoria de xornada de limpeza",
+                           "Outras Convocatorias"
+                         )),
+             selectInput(inputId = "select_concello", label = "Concello", multiple = TRUE, choices=c(), selected="")
+             ),
     menuItem("Información adicional", tabName = "info_add", startExpanded = TRUE,
              uiOutput("sidebarContent")),
     menuItem("Agradecementos", tabName = "ack")
@@ -63,7 +63,7 @@ body <- dashboardBody(
   tabItems(
     tabItem(tabName = "ack",
             column(12,
-                   HTML(paste("Este proxecto é posible grazas a colaboración e recollida de datos de voluntarias, de Noia Limpa, e a cesión de recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
+                   HTML(paste("Este proxecto é posible grazas a colaboración e recollida de datos de voluntarias; de Ana e Miguel das Chas; das voluntarias de Noia Limpa; e a cesión de recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
                    )
             ),
     tabItem(tabName = "map",
@@ -103,9 +103,9 @@ body <- dashboardBody(
         fluidRow(
           column(12,
                  box(status = "primary",
-                     HTML("<div style='font-size:15px'>Evolución diaria - Praias Afectadas</div>"),
+                     HTML("<div style='font-size:15px'>Evolución diaria - Actualizacións Recibidas </div>"),
                      withSpinner(plotOutput("cum_praias")), width = 6),
-                 box(status = "primary",  HTML("<div style='font-size:15px'>Top 5 Concellos Afectados</div>"), withSpinner(plotOutput("top5_concellos")), width = 6)
+                 box(status = "primary",  HTML("<div style='font-size:15px'>Top 5 Concellos</div>"), withSpinner(plotOutput("top5_concellos")), width = 6)
                  )
         )
     )
@@ -174,7 +174,7 @@ server <- function(input, output, session) {
     }
 
     # Filter data based on selected date range
-    updateSelectInput(session,"select_concello",choices=unique(all_data$Concello), selected = input$select_concello)
+    updateSelectInput(session,"select_concello",choices=unique(all_data$Concello), select = input$select_concello)
 
     if(!is.null(input$select_concello)){
       filtered_data <- filtered_data %>% filter(Concello %in% input$select_concello)
@@ -306,69 +306,73 @@ server <- function(input, output, session) {
       info <- data() %>%
         filter(id == clickedMarker()$id)
       #### add content to sidebar
-      tipo <- info$Tipo.de.actualización.que.nos.queres.facer.chegar
-      if(!(tipo %in% c("Convocatoria de xornada de limpeza", "Outras Convocatorias"))){
+      if(nrow(info) > 0){
+        tipo <- info$Tipo.de.actualización.que.nos.queres.facer.chegar
+        if(!(tipo %in% c("Convocatoria de xornada de limpeza", "Outras Convocatorias"))){
 
-        links <- c()
+          links <- c()
 
-        if(tipo == "Hai pellets na praia"){
-          if(!is.na(info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza)){
-            links <- sapply(info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
-          }
-        }
-        else if(tipo ==  "Non hai pellets na praia"){
-          if(!is.na(info$Imaxes.adicionais)){
-            links <- sapply(info$Imaxes.adicionais, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
-          }
-        }
-
-        output$sidebarContent <- renderUI({
-          sidebar <- fluidRow(
-            column(12, HTML(paste(
-              "<br><strong>Praia: </strong>", htmlEscape(info$Nome.da.praia..Concello), "<br>",
-              "<strong>Data da limpeza: </strong>", htmlEscape(info$Marca.temporal), "<br>",
-              "<strong>Concello: </strong>", htmlEscape(info$Concello), "<br>",
-              "<strong>Información adicional: </strong><div>", htmlEscape(info$Información.adicional), "</div><br>"
-            ))),
-            column(12, h5("Imaxes dispoñibles:")),
-            column(12, HTML(paste(
-              lapply(1:length(links), function(i) {
-                if(!is.null(links[i])){
-                  HTML(paste(
-                    "<a href='", htmlEscape(url_encode_vector(links[i])), "' target='_blank'>Imaxe ", i, "</a><br>"
-                  ))
-                }else{
-                  paste("")
-                }
-              }),
-              collapse = ""
-            ))),
-            if (!is.null(updateTimestamp$time)) {
-              column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
+          if(tipo == "Hai pellets na praia"){
+            if(!is.na(info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza)){
+              links <- sapply(info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
             }
-          )
-          return(sidebar)
-        })
-      }
-      else{
-        output$sidebarContent <- renderUI({
-          sidebar <- fluidRow(
-            column(12, HTML(paste(
-              "<br><strong>Tipo: </strong>", htmlEscape(info$Tipo.de.actualización.que.nos.queres.facer.chegar), "<br>",
-              "<strong>Data e hora: </strong>", htmlEscape(info$Data), " ", htmlEscape(info$Hora), "<br>",
-              "<strong>Lugar de encontro: </strong>", htmlEscape(info$Lugar.de.encontro), "<br>",
-              "<strong>Quen organiza a iniciativa: </strong>", htmlEscape(info$Quen.organiza.a.iniciativa), "<br>",
-              "<strong>Contacto: </strong>", htmlEscape(info$Contacto), "<br>",
-              tags$a("Cartaz", href = htmlEscape(url_encode_vector(info$Cartaz))), "<br>",
-              tags$a("Ligazón", href = htmlEscape(url_encode_vector(info$Ligazón))), "<br>"))),
-            if (!is.null(updateTimestamp$time)) {
-              column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
+          }
+          else if(tipo ==  "Non hai pellets na praia"){
+            if(!is.na(info$Imaxes.adicionais)){
+              links <- sapply(info$Imaxes.adicionais, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
             }
-          )
-          return(sidebar)
-        })
+          }
 
+          output$sidebarContent <- renderUI({
+            sidebar <- fluidRow(
+              tags$style(HTML(".skin-black .sidebar-menu>li>.treeview-menu {padding-left: 15px;}")),  # Add margin to shiny-input-container
+              column(12, HTML(paste(
+                "<br><strong>Praia: </strong>", htmlEscape(info$Nome.da.praia..Concello), "<br>",
+                "<strong>Data da limpeza: </strong>", htmlEscape(info$Marca.temporal), "<br>",
+                "<strong>Concello: </strong>", htmlEscape(info$Concello), "<br>",
+                "<strong>Información adicional: </strong><div>", htmlEscape(info$Información.adicional), "</div><br>"
+              ))),
+              column(12, h5("Imaxes dispoñibles:")),
+              column(12, HTML(paste(
+                lapply(1:length(links), function(i) {
+                  if(!is.null(links[i])){
+                    HTML(paste(
+                      "<a href='", htmlEscape(url_encode_vector(links[i])), "' target='_blank'>Imaxe ", i, "</a><br>"
+                    ))
+                  }else{
+                    paste("")
+                  }
+                }),
+                collapse = ""
+              ))),
+              if (!is.null(updateTimestamp$time)) {
+                column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
+              }
+            )
+            return(sidebar)
+          })
+        }
+        else{
+          output$sidebarContent <- renderUI({
+            sidebar <- fluidRow(
+              column(12, HTML(paste(
+                "<br><strong>Tipo: </strong>", htmlEscape(info$Tipo.de.actualización.que.nos.queres.facer.chegar), "<br>",
+                "<strong>Data e hora: </strong>", htmlEscape(info$Data), " ", htmlEscape(info$Hora), "<br>",
+                "<strong>Lugar de encontro: </strong>", htmlEscape(info$Lugar.de.encontro), "<br>",
+                "<strong>Quen organiza a iniciativa: </strong>", htmlEscape(info$Quen.organiza.a.iniciativa), "<br>",
+                "<strong>Contacto: </strong>", htmlEscape(info$Contacto), "<br>",
+                tags$a("Cartaz", href = htmlEscape(url_encode_vector(info$Cartaz))), "<br>",
+                tags$a("Ligazón", href = htmlEscape(url_encode_vector(info$Ligazón))), "<br>"))),
+              if (!is.null(updateTimestamp$time)) {
+                column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
+              }
+            )
+            return(sidebar)
+          })
+
+        }
       }
+
     }
   })
 
