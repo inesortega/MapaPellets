@@ -80,32 +80,38 @@ body <- dashboardBody(
         column(12, HTML("<br>")),
         fluidRow(
           column(12,
-            box(status = "primary", HTML("<div style='font-size:15px'>Total Concellos</div>"),
+            box(status = "primary", HTML("<div style='font-size:15px'>Num. Concellos</div>"), HTML("<div style='font-size:10px'>con actualizacións recibidas</div>"),
                 withSpinner(valueBoxOutput("n_concellos")),
                 width = 3),
-            box(status = "primary", HTML("<div style='font-size:15px'>Total praias</div>"), withSpinner(valueBoxOutput("n_praias")), width = 3),
-            box(status = "primary", HTML("<div style='font-size:15px'>Animais mortos</div>"),
-                withSpinner(valueBoxOutput("n_animais")),
+            box(status = "primary", HTML("<div style='font-size:15px'>Num. Praias</div>"), HTML("<div style='font-size:10px'>con actualizacións recibidas</div>"),
+                withSpinner(valueBoxOutput("n_praias")), width = 3),
+            box(status = "primary", HTML("<div style='font-size:15px'>Total actualizacións</div>"), HTML("<div style='font-size:10px'>recibidas no formulario</div>"),
+                withSpinner(valueBoxOutput("n_update")),
                 width = 3),
-            box(status = "primary", HTML("<div style='font-size:15px'>Notificacións 112</div>"),
+            box(status = "primary", HTML("<div style='font-size:15px'>Notificacións 112</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
                 withSpinner(valueBoxOutput("n_112")),
                 width = 3)
           )
         ),
+        #column(12, h4("Reconto por tipo de actualización:")),
         fluidRow(
           column(12,
-                 box(status = "primary", HTML("<div style='font-size:15px'>Con Pellets</div>"), withSpinner(valueBoxOutput("n_pellets")), width = 3),
-                 box(status = "primary", HTML("<div style='font-size:15px'>Sen Pellets</div>"), withSpinner(valueBoxOutput("non_pellets")), width = 3),
-                 box(status = "primary", HTML("<div style='font-size:15px'>Xa non hai</div>"), withSpinner(valueBoxOutput("n_limpas")), width = 3),
-                 box(status = "primary", HTML("<div style='font-size:15px'>Limpezas realizadas</div>"), withSpinner(valueBoxOutput("n_limpezas")), width = 3)
+                 box(status = "primary", HTML("<div style='font-size:15px'>Praia con Pellets</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
+                     withSpinner(valueBoxOutput("n_pellets")), width = 3),
+                 box(status = "primary", HTML("<div style='font-size:15px'>Praia sen Pellets</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
+                     withSpinner(valueBoxOutput("non_pellets")), width = 3),
+                 box(status = "primary", HTML("<div style='font-size:15px'>Praia limpa (xa non hai)</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
+                     withSpinner(valueBoxOutput("n_limpas")), width = 3),
+                 box(status = "primary", HTML("<div style='font-size:15px'>Outros eventos</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
+                     withSpinner(valueBoxOutput("n_limpezas")), width = 3)
           )
         ),
         fluidRow(
           column(12,
                  box(status = "primary",
                      HTML("<div style='font-size:15px'>Evolución diaria - Actualizacións Recibidas </div>"),
-                     withSpinner(plotOutput("cum_praias")), width = 6),
-                 box(status = "primary",  HTML("<div style='font-size:15px'>Top 5 Concellos</div>"), withSpinner(plotOutput("top5_concellos")), width = 6)
+                     withSpinner(plotOutput("cum_praias")), width = 12)
+                 #box(status = "primary",  HTML("<div style='font-size:15px'>Top 5 Concellos</div>"), withSpinner(plotOutput("top5_concellos")), width = 6)
                  )
         )
     )
@@ -133,6 +139,8 @@ server <- function(input, output, session) {
   last_run_time <- reactiveValues(time = Sys.time())
   isFirstRun <- reactiveVal(TRUE)
 
+
+  ########### REACTIVE ELEMENTS ##############
   # Create a reactiveValu object to store the clicked marker information
   clickedMarker <- reactiveVal(NULL)
 
@@ -145,7 +153,7 @@ server <- function(input, output, session) {
           Data.Norm = case_when(
             Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Convocatoria de xornada de limpeza", "Outras Convocatorias") ~ as.Date(Data, "%Y-%m-%dd", tz="UTC"),
             TRUE ~ as.Date(Marca.temporal, "%Y-%m-%dd", tz="UTC"))  # Default case
-          )
+        )
 
       all_data <- all_data %>%
         mutate(Nome.da.praia..Concello = ifelse(str_detect(Nome.da.praia..Concello, ","),
@@ -158,7 +166,6 @@ server <- function(input, output, session) {
     }, error = function(e){
       message("Error loading data...")
     })
-
     # Filter data based on selected date range
     max <- max(as.Date(all_data$Data.Norm))
     min <- min(as.Date(all_data$Data.Norm))
@@ -183,102 +190,6 @@ server <- function(input, output, session) {
     filtered_data <- filtered_data %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% input$legendFilter)
 
     filtered_data
-  })
-
-  output$n_concellos <- renderValueBox({
-    distinct_counts <- data() %>%
-      count(Concello)
-    n_concellos <- length(distinct_counts$Concello)
-    customValueBox(n_concellos)
-  })
-  output$n_praias <- renderValueBox({
-    praias_elem = c("Hai pellets na praia","Non hai pellets na praia","Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
-    distinct_counts <- data() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% praias_elem) %>%
-      count(Nome.da.praia..Concello, Concello)
-    n_praias <- length(distinct_counts$Nome.da.praia..Concello)
-    customValueBox(n_praias)
-  })
-  output$n_animais <- renderValueBox({
-    distinct_counts <- data() %>%
-      count(Atopaches.animáis.mortos.) %>% filter(Atopaches.animáis.mortos. == "Si")
-    customValueBox(distinct_counts)
-  })
-  output$n_112 <- renderValueBox({
-    distinct_counts <- data() %>%
-      count(Está.avisado.o.112.) %>% filter(Está.avisado.o.112. == "Si")
-    customValueBox(distinct_counts)
-  })
-
-  reconto <- reactive({
-    distinct_counts <- data() %>% count(Tipo.de.actualización.que.nos.queres.facer.chegar)
-  })
-
-  output$n_pellets <- renderValueBox({
-    count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Hai pellets na praia")
-    customValueBox(count)
-  })
-
-  output$non_pellets <- renderValueBox({
-    count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Non hai pellets na praia")
-    customValueBox(count)
-  })
-
-  output$n_limpas <- renderValueBox({
-    count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
-    customValueBox(count)
-  })
-
-  output$n_limpezas <- renderValueBox({
-    count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Convocatoria de xornada de limpeza")
-    customValueBox(count)
-  })
-
-  output$top5_concellos <- renderPlot({
-    top5 <- data() %>%
-      count(Concello) %>%
-      arrange(desc(n)) %>%
-      head(5)
-    ggplot(top5, aes(x = factor(Concello), y = n, fill = n)) +
-      geom_col(stat = "n",  show.legend = FALSE) +
-      geom_text(aes(label = Concello, y = n), position = position_stack(vjust = 0.5), color = "white") +
-      scale_fill_gradient(low = "#428BCA", high = "#428BCA") +
-      labs(x = NULL, y = NULL) + coord_flip() +
-      theme(
-        panel.background = element_rect(fill = "transparent", colour = NA),
-        plot.background = element_rect(fill = "transparent", colour = NA),
-        panel.grid = element_blank(),
-        panel.border = element_blank(),
-        plot.margin = unit(c(0, 0, 0, 0), "null"),
-        panel.margin = unit(c(0, 0, 0, 0), "null"),
-        axis.ticks = element_blank(),
-        axis.text = element_blank(),
-        axis.title = element_blank(),
-        axis.line = element_blank(),
-        axis.line.x = element_line(color = "black", size = 0.5),
-        axis.text.x = element_text(color = "black", size = 8),
-        legend.position = "none",
-        axis.ticks.length = unit(0, "null"),
-        axis.ticks.margin = unit(0, "null"),
-        legend.margin = unit(0, "null")
-      )
-  })
-
-  output$cum_praias <- renderPlot({
-    distinct_counts <- data() %>%
-      count(Nome.da.praia..Concello, Concello, Data.Norm)
-
-    summarized_data <- distinct_counts %>%
-      group_by(Data.Norm) %>%
-      summarize(sum_n = sum(n))
-
-    ggplot(summarized_data, aes(x = Data.Norm, y = sum_n)) +
-      geom_line(linewidth = 1, lineend = "round", linejoin = "mitre", colour = "#428BCA") +
-      labs(x = "Data", y = "Número de Praias afectadas")
   })
 
   # Update data and sidebar when date filter is changed
@@ -376,6 +287,114 @@ server <- function(input, output, session) {
     }
   })
 
+  ###### RENDER Statisticsc ################
+  output$n_concellos <- renderValueBox({
+    distinct_counts <- data() %>%
+      count(Concello)
+    n_concellos <- length(unique(distinct_counts$Concello))
+    customValueBox(n_concellos)
+  })
+
+  output$n_praias <- renderValueBox({
+    praias_tipos <- c("Hai pellets na praia", "Non hai pellets na praia", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
+    distinct_counts <- data() %>%
+      count(Nome.da.praia..Concello, Concello, Tipo.de.actualización.que.nos.queres.facer.chegar) %>%
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% praias_tipos)
+    customValueBox(length(unique(distinct_counts$Nome.da.praia..Concello)))
+
+  })
+
+  output$n_update <- renderValueBox({
+    customValueBox(nrow(data()))
+  })
+
+  # output$n_animais <- renderValueBox({
+  #   distinct_counts <- data() %>%
+  #     count(Atopaches.animáis.mortos.) %>% filter(Atopaches.animáis.mortos. == "Si")
+  #   customValueBox(distinct_counts)
+  # })
+
+  output$n_112 <- renderValueBox({
+    distinct_counts <- data() %>%
+      count(Está.avisado.o.112.) %>% filter(Está.avisado.o.112. == "Si")
+    customValueBox(distinct_counts)
+  })
+
+  reconto <- reactive({
+    distinct_counts <- data() %>% count(Nome.da.praia..Concello, Concello, Tipo.de.actualización.que.nos.queres.facer.chegar)
+  })
+
+  output$n_pellets <- renderValueBox({
+    count <- reconto() %>%
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Hai pellets na praia")
+    customValueBox(sum(count$n))
+  })
+
+  output$non_pellets <- renderValueBox({
+    count <- reconto() %>%
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Non hai pellets na praia")
+    customValueBox(sum(count$n))
+  })
+
+  output$n_limpas <- renderValueBox({
+    count <- reconto() %>%
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
+    customValueBox(sum(count$n))
+  })
+
+  output$n_limpezas <- renderValueBox({
+    count <- reconto() %>%
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Convocatoria de xornada de limpeza", "Outras Convocatorias"))
+    customValueBox(sum(count$n))
+  })
+
+  output$top5 <- renderPlot({
+    top5 <- data() %>%
+      count(Concello) %>%
+      arrange(desc(n)) %>%
+      head(5)
+    ggplot(top5, aes(x = factor(Concello), y = n, fill = n)) +
+      geom_col(stat = "n",  show.legend = FALSE) +
+      geom_text(aes(label = Concello, y = n), position = position_stack(vjust = 0.5), color = "white") +
+      scale_fill_gradient(low = "#428BCA", high = "#428BCA") +
+      labs(x = NULL, y = NULL) + coord_flip() +
+      theme(
+        panel.background = element_rect(fill = "transparent", colour = NA),
+        plot.background = element_rect(fill = "transparent", colour = NA),
+        #panel.grid = element_blank(),
+        panel.border = element_blank(),
+        plot.margin = unit(c(0, 0, 0, 0), "null"),
+        panel.margin = unit(c(0, 0, 0, 0), "null"),
+        #axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        #axis.title = element_blank(),
+        axis.line = element_blank(),
+        axis.line.x = element_line(color = "black", size = 1),
+        axis.text.x = element_text(color = "black", size = 10),
+        legend.position = "none",
+        axis.ticks.length = unit(0, "null"),
+        axis.ticks.margin = unit(0, "null"),
+        legend.margin = unit(0, "null")
+      )
+  })
+
+  output$cum_praias <- renderPlot({
+    distinct_counts <- data() %>%
+      count(Nome.da.praia..Concello, Concello, Data.Norm)
+
+    summarized_data <- distinct_counts %>%
+      group_by(Data.Norm) %>%
+      summarize(sum_n = sum(n))
+
+    ggplot(summarized_data, aes(x = Data.Norm, y = sum_n)) +
+      geom_line(linewidth = 1, lineend = "round", linejoin = "mitre", colour = "#428BCA") +
+      labs(x = "Data", y = "Número de Actualizacións") +
+      theme(
+        axis.text.x = element_text(color = "black", size = 10)
+      )
+  })
+
+  ###### RENDER MAP ################
   # Create a reactive object for each type
   data_hai_pellets <- reactive({
     data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Hai pellets na praia")
@@ -407,8 +426,6 @@ server <- function(input, output, session) {
   })
 
   # Render map
-  proxy_map <- leafletProxy("mymap")
-
   output$mymap <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
@@ -426,6 +443,7 @@ server <- function(input, output, session) {
   })
 
   observe({
+    req(input$sidebarID == "map") # Only display if tab is 'map'
     # Check if the data is not empty
     if (!is.null(data()) && nrow(data()) > 0) {
       proxy_map <- leafletProxy("mymap")
@@ -462,7 +480,8 @@ server <- function(input, output, session) {
               stroke = FALSE, fillOpacity = 0.5
             )
 
-        } else if (selected_filter == "Non hai pellets na praia" & nrow(data_non_hai_pellets()) > 0) {
+        }
+        else if (selected_filter == "Non hai pellets na praia" & nrow(data_non_hai_pellets()) > 0) {
           proxy_map %>%
             addCircleMarkers(
               data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Non hai pellets na praia"),
@@ -479,7 +498,8 @@ server <- function(input, output, session) {
               ),
               stroke = FALSE, fillOpacity = 0.5
             )
-        } else if (selected_filter == "Convocatoria de xornada de limpeza" & nrow(data_convocatoria()) > 0) {
+        }
+        else if (selected_filter == "Convocatoria de xornada de limpeza" & nrow(data_convocatoria()) > 0) {
           proxy_map %>%
             addCircleMarkers(
               data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Convocatoria de xornada de limpeza"),
@@ -498,7 +518,8 @@ server <- function(input, output, session) {
               ),
               stroke = FALSE, fillOpacity = 0.5
             )
-        } else if (selected_filter == "Outras Convocatorias" & nrow(data_evento()) > 0) {
+        }
+        else if (selected_filter == "Outras Convocatorias" & nrow(data_evento()) > 0) {
           proxy_map %>%
             addCircleMarkers(
               data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Outras Convocatorias"),
@@ -517,7 +538,8 @@ server <- function(input, output, session) {
               ),
               stroke = FALSE, fillOpacity = 0.5
             )
-        } else if (selected_filter == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)" & nrow(data_xa_non_hai()) > 0) {
+        }
+        else if (selected_filter == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)" & nrow(data_xa_non_hai()) > 0) {
           proxy_map %>%
             addCircleMarkers(
               data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"),
@@ -548,16 +570,11 @@ server <- function(input, output, session) {
       proxy_map %>%
         clearMarkers() %>%
         clearPopups()
-      # Optionally, you can add a popup or some other notification
-      # to indicate that there is no data to display
-      # Example: Displaying a popup at a default location
       proxy_map %>%
         addPopups(lng = -8.1, lat = 42.5, popup = "Non hai datos para mostrar con estes filtros.")
     }
   })
-
 }
-
 
 # Custom valueBox function
 customValueBox <- function(value) {
