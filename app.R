@@ -69,7 +69,7 @@ body <- dashboardBody(
     tabItem(tabName = "map",
         column(12, h4("Mapa actualizado da situación das praias galegas")),
         #column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets.")),
-        column(12, paste("O mapa reflexa as actualizacións do estado das praias enviadas polos voluntarios. Polo momento, non ofrece información agregada do número de praias afectadas.")),
+        column(12, paste("O mapa reflexa as actualizacións do estado das praias enviadas polos voluntarios. Podes atopar información estadística sobre as praias afectadas no menú Datos e estadísticas do panel lateral.")),
         column(12, leafletOutput("mymap"))
     ),
     tabItem(tabName = "info",
