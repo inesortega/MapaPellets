@@ -444,11 +444,10 @@ server <- function(input, output, session) {
 
   observe({
     req(input$sidebarID == "map") # Only display if tab is 'map'
+    proxy_map <- leafletProxy("mymap")
     # Check if the data is not empty
     if (!is.null(data()) && nrow(data()) > 0) {
-      proxy_map <- leafletProxy("mymap")
       proxy_map %>% clearMarkers()
-
       # Determine the selected filters
       selected_filters <- input$legendFilter
 
@@ -597,7 +596,6 @@ customValueBox <- function(value) {
     )
   )
 }
-
 
 if(Sys.getenv("ENV") == "docker"){
   options(shiny.host = '0.0.0.0')

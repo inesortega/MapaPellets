@@ -143,7 +143,12 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
       current_indexes <- as.numeric(rownames(praias))
       data[current_indexes, ]$lat <- praias[current_indexes, ]$lat
       data[current_indexes, ]$lon <- praias[current_indexes, ]$lon
+
     }
+  }
+  else{
+    praias <- data
+    indexes <- as.numeric(rownames(praias))
   }
 
   message(paste("Processing ", length(indexes), " rows"))
