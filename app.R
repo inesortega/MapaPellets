@@ -44,7 +44,6 @@ sidebar <- dashboardSidebar(
                            "Outras Convocatorias" = "Outras Convocatorias"
                          ), multiple = TRUE,
                          selected = c(
-                           "Hai pellets na praia",
                            "Hai biosoportes",
                            "Hai chapapote",
                            "A praia está limpa",
