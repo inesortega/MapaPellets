@@ -52,6 +52,7 @@ sidebar <- dashboardSidebar(
                            "Convocatoria de xornada de limpeza",
                            "Outras Convocatorias"
                          )),
+             selectInput(inputId = "select_provincia", label = "Provincia", multiple = TRUE, choices=c(), selected=""),
              selectInput(inputId = "select_concello", label = "Concello", multiple = TRUE, choices=c(), selected="")
              ),
     menuItem("Información adicional", tabName = "info_add", startExpanded = TRUE,
@@ -196,8 +197,15 @@ server <- function(input, output, session) {
       filtered_data <- all_data
     }
 
-    # Filter data based on selected date range
-    updateSelectInput(session,"select_concello",choices=unique(all_data$Concello), select = input$select_concello)
+    # Filter data based on selected provincia
+    updateSelectInput(session,"select_provincia",choices=setdiff(unique(filtered_data$Provincia), "FALSE"), select = input$select_provincia)
+
+    if(!is.null(input$select_provincia)){
+      filtered_data <- filtered_data %>% filter(Provincia %in% input$select_provincia)
+    }
+
+    # Filter data based on selected concello
+    updateSelectInput(session,"select_concello",choices=unique(filtered_data$Concello), select = input$select_concello)
 
     if(!is.null(input$select_concello)){
       filtered_data <- filtered_data %>% filter(Concello %in% input$select_concello)
