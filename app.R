@@ -35,15 +35,19 @@ sidebar <- dashboardSidebar(
              pickerInput("legendFilter",
                          "Filtrar por tipo de actualización:",
                          choices = c(
-                           "Hai pellets na praia" = "Hai pellets na praia",
-                           "Non hai pellets na praia" = "Non hai pellets na praia",
+                           "Pellets" = "Hai pellets na praia",
+                           "Biosoportes" = "Hai biosoportes",
+                           "Chapapote" = "Hai chapapote",
+                           "Praia limpa" = "A praia está limpa",
                            "Xa non hai (a praia quedaba limpa cando se encheu o formulario)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
                            "Convocatoria de xornada de limpeza" = "Convocatoria de xornada de limpeza",
                            "Outras Convocatorias" = "Outras Convocatorias"
                          ), multiple = TRUE,
                          selected = c(
                            "Hai pellets na praia",
-                           "Non hai pellets na praia",
+                           "Hai biosoportes",
+                           "Hai chapapote",
+                           "A praia está limpa",
                            "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
                            "Convocatoria de xornada de limpeza",
                            "Outras Convocatorias"
@@ -96,14 +100,20 @@ body <- dashboardBody(
         #column(12, h4("Reconto por tipo de actualización:")),
         fluidRow(
           column(12,
-                 box(status = "primary", HTML("<div style='font-size:15px'>Praia con Pellets</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
-                     withSpinner(valueBoxOutput("n_pellets")), width = 3),
-                 box(status = "primary", HTML("<div style='font-size:15px'>Praia sen Pellets</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
-                     withSpinner(valueBoxOutput("non_pellets")), width = 3),
-                 box(status = "primary", HTML("<div style='font-size:15px'>Praia limpa (xa non hai)</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
-                     withSpinner(valueBoxOutput("n_limpas")), width = 3),
+                 box(status = "primary", HTML("<div style='font-size:15px'>Praias con Residuos</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
+                     withSpinner(valueBoxOutput("n_pellets")), width = 4),
+                 box(status = "primary", HTML("<div style='font-size:15px'>Praia limpa</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
+                     withSpinner(valueBoxOutput("n_limpas")), width = 4),
                  box(status = "primary", HTML("<div style='font-size:15px'>Outros eventos</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
-                     withSpinner(valueBoxOutput("n_limpezas")), width = 3)
+                     withSpinner(valueBoxOutput("n_limpezas")), width = 4)
+          )
+        ),
+        fluidRow(
+          column(12,
+                 box(status = "primary",
+                     HTML("<div style='font-size:15px'>Evolución diaria - Actualizacións recibidas por tipo de residuo </div>"),
+                     withSpinner(plotOutput("cum_residuos")), width = 12)
+                 #box(status = "primary",  HTML("<div style='font-size:15px'>Top 5 Concellos</div>"), withSpinner(plotOutput("top5_concellos")), width = 6)
           )
         ),
         fluidRow(
@@ -151,8 +161,14 @@ server <- function(input, output, session) {
       all_data <- all_data %>%
         mutate(
           Data.Norm = case_when(
-            Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Convocatoria de xornada de limpeza", "Outras Convocatorias") ~ as.Date(Data, "%Y-%m-%dd", tz="UTC"),
+            Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Convocatoria de xornada de limpeza", "Outras Convocatorias") ~ as.Date(Data.da.Convocatoria, "%Y-%m-%dd", tz="UTC"),
             TRUE ~ as.Date(Marca.temporal, "%Y-%m-%dd", tz="UTC"))  # Default case
+        ) %>%
+        mutate(
+          Residuo = case_when(
+            Tipo.de.actualización.que.nos.queres.facer.chegar  == "Hai pellets na praia" ~ "Pellets",
+            Tipo.de.actualización.que.nos.queres.facer.chegar  == "Hai biosoportes" ~ "Biosoportes",
+            Tipo.de.actualización.que.nos.queres.facer.chegar  == "Hai chapapote" ~ "Chapapote")  # Default case
         )
 
       all_data <- all_data %>%
@@ -223,12 +239,12 @@ server <- function(input, output, session) {
 
           links <- c()
 
-          if(tipo == "Hai pellets na praia"){
-            if(!is.na(info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza)){
-              links <- sapply(info$Imaxe.dos.pellets.no.lugar.ou.da.xornada.de.limpeza, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
+          if(tipo  %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes")){
+            if(!is.na(info$Imaxe.dos.residuos.no.lugar.ou.da.xornada.de.limpeza)){
+              links <- sapply(info$Imaxe.dos.residuos.no.lugar.ou.da.xornada.de.limpeza, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
             }
           }
-          else if(tipo ==  "Non hai pellets na praia"){
+          else if(tipo %in% c("Non hai pellets", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")){
             if(!is.na(info$Imaxes.adicionais)){
               links <- sapply(info$Imaxes.adicionais, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
             }
@@ -268,8 +284,7 @@ server <- function(input, output, session) {
             sidebar <- fluidRow(
               column(12, HTML(paste(
                 "<br><strong>Tipo: </strong>", htmlEscape(info$Tipo.de.actualización.que.nos.queres.facer.chegar), "<br>",
-                "<strong>Data e hora: </strong>", htmlEscape(info$Data), " ", htmlEscape(info$Hora), "<br>",
-                "<strong>Lugar de encontro: </strong>", htmlEscape(info$Lugar.de.encontro), "<br>",
+                "<strong>Data e hora: </strong>", htmlEscape(info$Data.da.Convocatoria), " ", htmlEscape(info$Hora), "<br>",
                 "<strong>Quen organiza a iniciativa: </strong>", htmlEscape(info$Quen.organiza.a.iniciativa), "<br>",
                 "<strong>Contacto: </strong>", htmlEscape(info$Contacto), "<br>",
                 tags$a("Cartaz", href = htmlEscape(url_encode_vector(info$Cartaz))), "<br>",
@@ -296,7 +311,7 @@ server <- function(input, output, session) {
   })
 
   output$n_praias <- renderValueBox({
-    praias_tipos <- c("Hai pellets na praia", "Non hai pellets na praia", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
+    praias_tipos <- c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes", "Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
     distinct_counts <- data() %>%
       count(Nome.da.praia..Concello, Concello, Tipo.de.actualización.que.nos.queres.facer.chegar) %>%
       filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% praias_tipos)
@@ -326,19 +341,13 @@ server <- function(input, output, session) {
 
   output$n_pellets <- renderValueBox({
     count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Hai pellets na praia")
-    customValueBox(sum(count$n))
-  })
-
-  output$non_pellets <- renderValueBox({
-    count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Non hai pellets na praia")
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes"))
     customValueBox(sum(count$n))
   })
 
   output$n_limpas <- renderValueBox({
     count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("A praia está limpa", "Non hai pellets na praia", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"))
     customValueBox(sum(count$n))
   })
 
@@ -394,15 +403,37 @@ server <- function(input, output, session) {
       )
   })
 
+
+
+  output$cum_residuos <- renderPlot({
+    distinct_counts <- data() %>%
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes")) %>%
+      count(Residuo, Data.Norm)
+
+    # Group by both Data.Norm and Residuo to calculate sums per Residuo type
+    summarized_data <- distinct_counts %>%
+      group_by(Data.Norm, Residuo) %>%
+      summarize(sum_n = sum(n), .groups = 'drop')
+
+    # Plot each Residuo as a separate line
+    ggplot(summarized_data, aes(x = Data.Norm, y = sum_n, color = Residuo, group = Residuo)) +
+      geom_line(linewidth = 1, lineend = "round", linejoin = "mitre") +
+      labs(x = "Data", y = "Número de Actualizacións", color = "Residuo") +
+      theme(
+        axis.text.x = element_text(color = "black", size = 10),
+        legend.position = "bottom" # Optional: adjust the legend position
+      )
+  })
+
   ###### RENDER MAP ################
   # Create a reactive object for each type
   data_hai_pellets <- reactive({
-    data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Hai pellets na praia")
+    data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes"))
   })
 
   data_non_hai_pellets <- reactive({
     data() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Non hai pellets na praia")
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"))
   })
 
   data_convocatoria <- reactive({
@@ -417,7 +448,7 @@ server <- function(input, output, session) {
 
   data_xa_non_hai <- reactive({
     data() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"))
   })
 
   color_factor <- reactive({
@@ -432,12 +463,11 @@ server <- function(input, output, session) {
       setView(lng = -8.1, lat = 42.5, zoom = 7) %>%
       addLegend(
         position = "bottomright",
-        colors = c("#e31a1c", "#33a02c", "#F5A618", "#490a73","#1f78b4"),  # Colors for the four categories
-        labels = c(paste("Hai pellets na praia (", nrow(data_hai_pellets()), ")", sep = ""),
-                   paste("Non hai pellets na praia (", nrow(data_non_hai_pellets()), ")", sep = ""),
+        colors = c("#e31a1c", "#33a02c", "#F5A618", "#490a73"),  # Colors for the four categories
+        labels = c(paste("Hai residuos na praia (", nrow(data_hai_pellets()), ")", sep = ""),
+                   paste("Non hai residuos na praia (", nrow(data_non_hai_pellets()), ")", sep = ""),
                    paste("Convocatoria de xornada de limpeza (", nrow(data_convocatoria()), ")", sep = ""),
-                   paste("Outras Convocatorias (", nrow(data_evento()), ")", sep = ""),
-                   paste("Xa non hai (quedou limpa), (", nrow(data_xa_non_hai()), ")", sep = "")),
+                   paste("Outras Convocatorias (", nrow(data_evento()), ")", sep = "")),
         title = "Tipo de actualización e reconto por tipo"
       )
   })
@@ -453,50 +483,33 @@ server <- function(input, output, session) {
 
       # Add markers based on the selected filters
       for (selected_filter in selected_filters) {
-        if (selected_filter == "Hai pellets na praia" & nrow(data_hai_pellets()) > 0) {
+        if ((selected_filter %in% c("Hai pellets na praia", "Hai biosoportes", "Hai chapapote")) & nrow(data_hai_pellets()) > 0) {
           proxy_map %>%
             addCircleMarkers(
-              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Hai pellets na praia"),
+              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes")),
               lng = ~lon,
               lat = ~lat,
-              label = ~Nome.da.praia..Concello,
+              label = ~paste(Residuo, " - ", Nome.da.praia..Concello),
               layerId = ~id,
               radius = 10,
               color = "#e31a1c",
               popup = ~paste(
                 paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
+                paste("<strong>Tipo de residuo: </strong>", htmlEscape(Residuo), "<br>"),
                 paste("<strong>Data da actualización: </strong>", htmlEscape(Marca.temporal), "<br>"),
                 paste("<strong>Está avisado o 112?</strong>", htmlEscape(Está.avisado.o.112.), "<br>"),
                 paste("<strong>Hai animais mortos</strong>", htmlEscape(Atopaches.animáis.mortos.), "<br>"),
-                paste("<strong>Por onde están espallados: </strong>", htmlEscape(Por.onde.están.espallados.os.pellets), "<br>"),
-                paste("<strong>Quen está recollendo os pellets?</strong>", htmlEscape(Quen.está.recollendo.os.pellets.), "<br>"),
-                paste("<strong>Como se están a recoller?</strong>", htmlEscape(Como.estase.a.recoller.os.pellets.), "<br>"),
-                paste("<strong>Onde se depositan?</strong>", htmlEscape(Onde.se.depositan.os.pellets.), "<br>"),
-                paste("<strong>Hai sacos de pellets?</strong>", htmlEscape(Hai.sacos.de.pellets.), "<br>"),
-                paste("<strong>Cantidade de pellets: </strong>", htmlEscape(Cantidade.de.pellets), "<br>"),
+                paste("<strong>Por onde están espallados os residuos: </strong>", htmlEscape(Por.onde.están.espallados.os.residuos), "<br>"),
+                paste("<strong>Quen está recollendo os residuos?</strong>", htmlEscape(Quen.está.recollendo.os.residuos.), "<br>"),
+                paste("<strong>Como se están a recoller?</strong>", htmlEscape(Como.se.están.a.recoller.os.residuos.), "<br>"),
+                paste("<strong>Onde se depositan?</strong>", htmlEscape(Onde.se.depositan.os.residuos.), "<br>"),
+                paste("<strong>Hai sacos de pellets ou outro tipo de residuos?</strong>", htmlEscape(Hai.sacos.de.pellets.ou.outro.tipo.de.residuos.), "<br>"),
+                paste("<strong>Cantidade de residuos: </strong>", htmlEscape(Cantidade.de.residuos), "<br>"),
                 paste("<strong>Concello: </strong>", htmlEscape(Concello), "<br>")
               ),
               stroke = FALSE, fillOpacity = 0.5
             )
 
-        }
-        else if (selected_filter == "Non hai pellets na praia" & nrow(data_non_hai_pellets()) > 0) {
-          proxy_map %>%
-            addCircleMarkers(
-              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Non hai pellets na praia"),
-              lng = ~lon,
-              lat = ~lat,
-              label = ~Nome.da.praia..Concello,
-              layerId = ~id,
-              radius = 10,
-              color = "#33a02c",
-              popup = ~paste(
-                paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
-                paste("<strong>Data da actualización: </strong>", htmlEscape(Marca.temporal), "<br>"),
-                paste("<strong>Hai animais mortos</strong>", htmlEscape(Atopaches.animáis.mortos.), "<br>")
-              ),
-              stroke = FALSE, fillOpacity = 0.5
-            )
         }
         else if (selected_filter == "Convocatoria de xornada de limpeza" & nrow(data_convocatoria()) > 0) {
           proxy_map %>%
@@ -509,7 +522,7 @@ server <- function(input, output, session) {
               radius = 10,
               color = "#F5A618",
               popup = ~paste(
-                paste("<strong>Data da convocatoria: </strong>", htmlEscape(as.Date(Data)), " ", htmlEscape(Hora), "<br>"),
+                paste("<strong>Data da convocatoria: </strong>", htmlEscape(as.Date(Data.da.Convocatoria)), " ", htmlEscape(Hora), "<br>"),
                 paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
                 paste("<strong>Lugar de encontro: </strong>", htmlEscape(Lugar.de.encontro), "<br>"),
                 paste("<strong>Quen organiza a iniciativa? </strong>", htmlEscape(Quen.organiza.a.iniciativa), "<br>"),
@@ -529,7 +542,7 @@ server <- function(input, output, session) {
               radius = 10,
               color = "#490a73",
               popup = ~paste(
-                paste("<strong>Data da convocatoria: </strong>", htmlEscape(as.Date(Data)), " ", htmlEscape(Hora), "<br>"),
+                paste("<strong>Data da convocatoria: </strong>", htmlEscape(as.Date(Data.da.Convocatoria)), " ", htmlEscape(Hora), "<br>"),
                 paste("<strong>Lugar de encontro: </strong>", htmlEscape(Lugar.de.encontro), "<br>"),
                 paste("<strong>Quen organiza a iniciativa? </strong>", htmlEscape(Quen.organiza.a.iniciativa), "<br>"),
                 paste(tags$a("Ligazón", href = htmlEscape(Ligazón)), "<br>"),
@@ -538,28 +551,30 @@ server <- function(input, output, session) {
               stroke = FALSE, fillOpacity = 0.5
             )
         }
-        else if (selected_filter == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)" & nrow(data_xa_non_hai()) > 0) {
+        else if (selected_filter %in% c("Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)") & nrow(data_xa_non_hai()) > 0) {
           proxy_map %>%
             addCircleMarkers(
               data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"),
               lng = ~lon,
               lat = ~lat,
-              label = ~Nome.da.praia..Concello,
+              label = ~paste(Tipo.de.actualización.que.nos.queres.facer.chegar, " - ", Nome.da.praia..Concello),
               layerId = ~id,
               radius = 10,
               popup = ~paste(
                 paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
-                paste("<strong>Data da limpeza: </strong>", htmlEscape(Marca.temporal), "<br>"),
+                paste("<strong>Estado da praia: </strong>", htmlEscape(Tipo.de.actualización.que.nos.queres.facer.chegar), "<br>"),
+                paste("<strong>Data da actualización: </strong>", htmlEscape(Marca.temporal), "<br>"),
+                paste("<strong>Está avisado o 112?</strong>", htmlEscape(Está.avisado.o.112.), "<br>"),
                 paste("<strong>Hai animais mortos</strong>", htmlEscape(Atopaches.animáis.mortos.), "<br>"),
-                paste("<strong>Por onde están espallados: </strong>", htmlEscape(Por.onde.están.espallados.os.pellets), "<br>"),
-                paste("<strong>Quen está recollendo os pellets?</strong>", htmlEscape(Quen.está.recollendo.os.pellets.), "<br>"),
-                paste("<strong>Como se están a recoller?</strong>", htmlEscape(Como.estase.a.recoller.os.pellets.), "<br>"),
-                paste("<strong>Onde se depositan?</strong>", htmlEscape(Onde.se.depositan.os.pellets.), "<br>"),
-                paste("<strong>Hai sacos de pellets?</strong>", htmlEscape(Hai.sacos.de.pellets.), "<br>"),
-                paste("<strong>Cantidade de pellets: </strong>", htmlEscape(Cantidade.de.pellets), "<br>"),
+                paste("<strong>Por onde están espallados os residuos: </strong>", htmlEscape(Por.onde.están.espallados.os.residuos), "<br>"),
+                paste("<strong>Quen está recollendo os residuos?</strong>", htmlEscape(Quen.está.recollendo.os.residuos.), "<br>"),
+                paste("<strong>Como se están a recoller?</strong>", htmlEscape(Como.se.están.a.recoller.os.residuos.), "<br>"),
+                paste("<strong>Onde se depositan?</strong>", htmlEscape(Onde.se.depositan.os.residuos.), "<br>"),
+                paste("<strong>Hai sacos de pellets ou outro tipo de residuos?</strong>", htmlEscape(Hai.sacos.de.pellets.ou.outro.tipo.de.residuos.), "<br>"),
+                paste("<strong>Cantidade de residuos: </strong>", htmlEscape(Cantidade.de.residuos), "<br>"),
                 paste("<strong>Concello: </strong>", htmlEscape(Concello), "<br>")
               ),
-              color = "#1f78b4",
+              color = "#33a02c",
               stroke = FALSE, fillOpacity = 0.5
             )
         }
