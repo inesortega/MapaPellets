@@ -86,10 +86,14 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
       googlesheets4::gs4_auth(path=json_key)
 
       ss <- 'https://docs.google.com/spreadsheets/d/1E7K92pX4aS7CmGJWjYavEL8menX2gBkHoxtT3YTXwoc/'
-      data <- googlesheets4::read_sheet(ss)
-      data$lat <- NA
-      data$lon <- NA
-      data$Provincia <- as.character(data$Provincia)
+      data <- googlesheets4::read_sheet(ss, sheet = 1)
+      data_xeo <- googlesheets4::read_sheet(ss, sheet = 2)
+
+      # Add existing information available based on Concello and Nome da Praia:
+      data$lat <- data_xeo$X[match(data$`Nome da praia, Concello`, data_xeo$Combinado)]
+      data$lon <- data_xeo$Y[match(data$`Nome da praia, Concello`, data_xeo$Combinado)]
+      data$Provincia <- data_xeo$Provincia[match(data$Concello, data_xeo$Concello)]
+
       message(paste("Rows in cloud dataset = ", nrow(data)))
 
     },
@@ -157,34 +161,37 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
   ### Update required data ####
   for (idx in indexes) {
 
-    coord_str <- data$`Xeolocalización`[idx]
-    coord_str <- sapply(coord_str, clean_values)
+    if (is.na(data$lat[idx]) & is.na(data$lat[idx])){
 
-    value <- extract_and_convert_coords(coord_str)
+      coord_str <- data$`Xeolocalización`[idx]
+      coord_str <- sapply(coord_str, clean_values)
 
-    if (is.null(value)) {
-      place_name <- data$Nome.da.praia..Concello[idx]
-      geo_result <- geo(place_name, method = "osm", full_results = FALSE)
+      value <- extract_and_convert_coords(coord_str)
 
-      if(is.na(geo_result$lat)){
-        # probar so co nome da praia...
-        praia_concello <- sapply(place_name, function(x) strsplit(x, ", ")[[1]], USE.NAMES=FALSE)
-        geo_result <- geo(praia_concello[1], method = "osm", full_results = FALSE)
-        if(is.na(geo_result$lat) & !is.null(praia_concello[2])){
-          geo_result <- geo(praia_concello[2], method = "osm", full_results = FALSE) #only concello if available
+      if (is.null(value)) {
+        place_name <- data$Nome.da.praia..Concello[idx]
+        geo_result <- geo(place_name, method = "osm", full_results = FALSE)
+
+        if(is.na(geo_result$lat)){
+          # probar so co nome da praia...
+          praia_concello <- sapply(place_name, function(x) strsplit(x, ", ")[[1]], USE.NAMES=FALSE)
+          geo_result <- geo(praia_concello[1], method = "osm", full_results = FALSE)
+          if(is.na(geo_result$lat) & !is.null(praia_concello[2])){
+            geo_result <- geo(praia_concello[2], method = "osm", full_results = FALSE) #only concello if available
+          }
+          else if(is.null(praia_concello[2])){
+            # get concello from var name
+            geo_result <- geo(data$Concello[idx], method = "osm", full_results = FALSE)
+          }
         }
-        else if(is.null(praia_concello[2])){
-          # get concello from var name
-          geo_result <- geo(data$Concello[idx], method = "osm", full_results = FALSE)
+        if(!is.null(validate_coordinates(geo_result$lat, geo_result$long))){
+          data$lat[idx] <- geo_result$lat
+          data$lon[idx] <- geo_result$long
         }
+      } else {
+        data$lat[idx] <- value[1]
+        data$lon[idx] <- value[2]
       }
-      if(!is.null(validate_coordinates(geo_result$lat, geo_result$long))){
-        data$lat[idx] <- geo_result$lat
-        data$lon[idx] <- geo_result$long
-      }
-    } else {
-      data$lat[idx] <- value[1]
-      data$lon[idx] <- value[2]
     }
   }
 
