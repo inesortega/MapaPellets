@@ -39,8 +39,8 @@ sidebar <- dashboardSidebar(
                            "Biosoportes" = "Hai biosoportes",
                            "Chapapote" = "Hai chapapote",
                            "Praia limpa" = "A praia está limpa",
-                           "Xa non hai (a praia quedaba limpa cando se encheu o formulario)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
-                           "Convocatoria de xornada de limpeza" = "Convocatoria de xornada de limpeza",
+                           "Xa non hai (a praia quedaba limpa)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
+                           "Convocatoria de limpeza" = "Convocatoria de xornada de limpeza",
                            "Outras Convocatorias" = "Outras Convocatorias"
                          ), multiple = TRUE,
                          selected = c(
@@ -71,9 +71,11 @@ body <- dashboardBody(
                    )
             ),
     tabItem(tabName = "map",
-        column(12, h4("Mapa actualizado da situación das praias galegas")),
+        column(12, h4("Mapa en tempo real da situación das praias galegas")),
         #column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets.")),
         column(12, paste("O mapa reflexa as actualizacións do estado das praias enviadas polos voluntarios. Podes atopar información estadística sobre as praias afectadas no menú Datos e estadísticas do panel lateral.")),
+        column(12, paste("Emprega o panel lateral para filtrar a información por tipo de vertido, concello, provincia ou data de actualización. Por defecto, amósase a información da última semana. ")),
+        column(12, HTML("<br>")),
         column(12, leafletOutput("mymap"))
     ),
     tabItem(tabName = "info",
@@ -561,7 +563,7 @@ server <- function(input, output, session) {
         else if (selected_filter %in% c("Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)") & nrow(data_xa_non_hai()) > 0) {
           proxy_map %>%
             addCircleMarkers(
-              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"),
+              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")),
               lng = ~lon,
               lat = ~lat,
               label = ~paste(Tipo.de.actualización.que.nos.queres.facer.chegar, " - ", Nome.da.praia..Concello),
