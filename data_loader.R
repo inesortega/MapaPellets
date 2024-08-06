@@ -6,6 +6,8 @@ library(googlesheets4)
 library(readr)
 library(tidygeocoder)
 library(httr)
+library(oce)
+
 set_config(config(ssl_verifypeer = 0L))
 
 # Function to clean values
@@ -90,8 +92,13 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
       data_xeo <- googlesheets4::read_sheet(ss, sheet = 2)
 
       # Add existing information available based on Concello and Nome da Praia:
-      data$lat <- data_xeo$X[match(data$`Nome da praia, Concello`, data_xeo$Combinado)]
-      data$lon <- data_xeo$Y[match(data$`Nome da praia, Concello`, data_xeo$Combinado)]
+      x <- data_xeo$X[match(data$`Nome da praia, Concello`, data_xeo$Combinado)]
+      y <- data_xeo$Y[match(data$`Nome da praia, Concello`, data_xeo$Combinado)]
+
+      cords <- oce::utm2lonlat(x, y, 29, hemisphere="N") #ToDo improve excel sheet to account for all UTM zones
+      data$lon <- cords$longitude
+      data$lat <- cords$latitude
+
       data$Provincia <- data_xeo$Provincia[match(data$Concello, data_xeo$Concello)]
 
       message(paste("Rows in cloud dataset = ", nrow(data)))
