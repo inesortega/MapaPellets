@@ -28,9 +28,9 @@ sidebar <- dashboardSidebar(
              sliderInput(
                inputId = "dateRange",
                label = "Filtrado por data:",
-               min = as.Date("2024-01-06"),
+               min = as.Date("2024-01-01"),
                max = Sys.Date() + 2,
-               value = c(Sys.Date() - 2, Sys.Date() + 1)
+               value = c(Sys.Date() - 7, Sys.Date() + 1)
              ),
              pickerInput("legendFilter",
                          "Filtrar por tipo de actualización:",

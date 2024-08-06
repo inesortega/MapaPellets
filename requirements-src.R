@@ -14,6 +14,7 @@ pkgs <- c(
     'htmltools',
     'readr',
     'ggplot2',
-    'shinycssloaders'
+    'shinycssloaders',
+    'oce'
 )
 install.packages(pkgs)
