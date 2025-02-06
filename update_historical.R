@@ -1,4 +1,4 @@
-source("/app/data_loader.R")
+source("./data_loader.R")
 
 message("Starting update of dataset in background......")
 
@@ -9,10 +9,10 @@ last_daily_update <- NULL
 repeat{
   current_time <- Sys.time()
   current_hour <- as.numeric(format(current_time, "%H"))
-  
+
   monitor_fast <- as.numeric(difftime(current_time, last_fast_update, units = "mins"))
   monitor_historical <- as.numeric(difftime(current_time, last_historical_update, units = "mins"))
-  
+
   if(!is.null(last_daily_update)){
     monitor_daily <- as.numeric(difftime(current_time, last_daily_update, units = "hours"))
   }
@@ -44,7 +44,7 @@ repeat{
   }
   if (current_hour == 3)  {
     update_time = FALSE #Check condition
-    
+
     if(is.null(monitor_daily)){ # first time reaching 3am
       update_time = TRUE
     }
