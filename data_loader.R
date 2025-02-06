@@ -89,6 +89,7 @@ get_data <- function(update_all = FALSE, update_all_dataset = FALSE){
       data <- googlesheets4::read_sheet(ss)
       data$lat <- NA
       data$lon <- NA
+      data$Provincia <- as.character(data$Provincia)
       message(paste("Rows in cloud dataset = ", nrow(data)))
 
     },

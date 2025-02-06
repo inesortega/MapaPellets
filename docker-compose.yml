@@ -8,7 +8,7 @@ services:
     build: .
     container_name: data_loader
     volumes:
-      - ./data/praias.csv:/app/data
+      - ./data:/app/data
     networks:
       - default
     environment:
@@ -49,6 +49,14 @@ services:
       - pellets-shiny
     networks:
       - default
+
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 60 pellets_shiny data_loader
 
 networks:
   default:

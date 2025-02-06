@@ -4,7 +4,7 @@ FROM rocker/r-apt:bionic
 WORKDIR /app
 
 RUN apt-get update && \
-  apt-get install -y libxml2-dev libmysqlclient-dev
+  apt-get install -y libxml2-dev libmysqlclient-dev      
 
 RUN apt-get install -y libgdal-dev
 
