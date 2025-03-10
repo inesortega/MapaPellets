@@ -2,7 +2,7 @@
 library(magrittr)
 library(dplyr)
 library(tibble)
-if(!require("leaflet")) install.packages("leaflet")
+library(leaflet)
 library(shiny)
 library(shinyWidgets)
 library(shinydashboard)

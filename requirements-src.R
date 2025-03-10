@@ -1,17 +1,31 @@
+# requirements-src.R
+options(Ncpus = 16)
+
 pkgs <- c(
     'shinyWidgets',
     'shinythemes',
     'shinydashboard',
     'shinyjs',
     'magrittr',
-    'googlesheets4',
     'dplyr',
     'tibble',
-    'leaflet',
     'stringr',
     'shiny',
     'tidygeocoder',
     'htmltools',
-    'readr'
+    'readr',
+    'ggplot2',
+    'shinycssloaders',
+    'oce',
+    'googlesheets4',
+    'leaflet'
 )
-install.packages(pkgs)
+
+for (l in pkgs) {
+
+    install.packages(l, dependencies=TRUE, repos='https://cran.rstudio.com/');
+
+    if ( ! library(l, character.only=TRUE, logical.return=TRUE) ) {
+        quit(status=1, save='no')
+    }
+}
