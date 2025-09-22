@@ -1,31 +1,26 @@
 # requirements-src.R
-options(Ncpus = 16)
 
 pkgs <- c(
-    'shinyWidgets',
-    'shinythemes',
-    'shinydashboard',
-    'shinyjs',
-    'magrittr',
-    'dplyr',
-    'tibble',
-    'stringr',
-    'shiny',
-    'tidygeocoder',
-    'htmltools',
-    'readr',
-    'ggplot2',
-    'shinycssloaders',
-    'oce',
-    'googlesheets4',
-    'leaflet'
+  "shinyWidgets",
+  "shinythemes",
+  "shinydashboard",
+  "shinyjs",
+  "magrittr",
+  "googlesheets4",
+  "dplyr",
+  "tibble",
+  "leaflet",
+  "stringr",
+  "shiny",
+  "tidygeocoder",
+  "htmltools",
+  "readr"
 )
 
-for (l in pkgs) {
-
-    install.packages(l, dependencies=TRUE, repos='https://cran.rstudio.com/');
-
-    if ( ! library(l, character.only=TRUE, logical.return=TRUE) ) {
-        quit(status=1, save='no')
-    }
+install_if_missing <- function(package) {
+  if (!requireNamespace(package, quietly = TRUE)) {
+    install.packages(package, repos = "https://cloud.r-project.org")
+  }
 }
+
+invisible(lapply(pkgs, install_if_missing))
