@@ -24,8 +24,8 @@ services:
     container_name: pellets-shiny
     volumes:
       - ./data:/app/data
-    ports:
-      - 3838:3838/tcp
+    #ports:
+    #  - 3838:3838/tcp
     networks:
       - default
     environment:
@@ -45,6 +45,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt/live/pellets.10cal.ovh/fullchain.pem:/etc/certs/fullchain.pem:ro
       - /etc/letsencrypt/live/pellets.10cal.ovh/privkey.pem:/etc/certs/privkey.pem:ro
+      - /srv/www/acme:/srv/www/acme:ro
     depends_on: 
       - pellets-shiny
     networks:
@@ -56,7 +57,7 @@ services:
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 60 pellets_shiny data_loader
+    command: --interval 60 pellets-shiny data_loader
 
 networks:
   default:
