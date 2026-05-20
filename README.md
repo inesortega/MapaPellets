@@ -26,18 +26,16 @@ O ficherio `update_historical.R` executa un proceso en bucle para executar as ta
 - Actualización dos datos diarios: cada hora
 - Actualización do dataset completo: diariamente, as 3AM. 
 
-#### Despliegue con docker
+#### Despregue con docker
 
-Unha vez configuradas as credenciais, compilar a imaxe: 
+Compilar a imaxe: 
 
 ```
-docker build -t harbor.gradiant.org/iortega-pellets/pellets:latest .
-docker push harbor.gradiant.org/iortega-pellets/pellets:latest
+docker build -t pellets-shiny:latest .
 ```
 
-No servidor lanzar os seguintes comandos para actualizar a imaxe e desplegar a nova versión: 
+Lanzar os seguintes comandos para actualizar a imaxe e desplegar a nova versión: 
 ```
-sudo docker pull harbor.gradiant.org/iortega-pellets/pellets:latest
 sudo docker container rm -f pellets-shiny
 sudo docker-compose up -d
 ```
