@@ -1,64 +1,48 @@
-version: '3'
 services:
-
   data_loader:
-    restart: always
-    image: harbor.gradiant.org/iortega-pellets/pellets:latest
-    #image: pellets:latest
-    build: .
+    restart: "no"
+    image: pellets-shiny:latest
     container_name: data_loader
     volumes:
       - ./data:/app/data
+      - ./.secrets:/app/.secrets:ro
     networks:
-      - default
+      - pellets
     environment:
-      - GOOGLE_SHEETS_JSON_KEY=.secrets/earnest-vine-377812-6ae11f6184bc.json
+      - GOOGLE_SHEETS_JSON_KEY=/app/.secrets/earnest-vine-377812-6ae11f6184bc.json
       - ENV=docker
     command: ["R", "-e", "source('/app/update_historical.R')"]
 
   pellets-shiny:
     restart: always
-    image: harbor.gradiant.org/iortega-pellets/pellets:latest
-    #image: pellets:latest
+    image: pellets-shiny:latest
     build: .
     container_name: pellets-shiny
     volumes:
       - ./data:/app/data
-    #ports:
-    #  - 3838:3838/tcp
     networks:
-      - default
+      - pellets
     environment:
       - ENV=docker
-    depends_on:
-      - data_loader
-    command: ["R", "-e", "shiny::runApp('/app', port = 3838)"]
-    
+    command: ["R", "-e", "shiny::runApp('/app', host='0.0.0.0', port=3838)"]
+
   nginx:
     restart: always
     image: nginx:latest
     container_name: nginx
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     volumes:
+      - /srv/www/acme:/srv/www/acme
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - /etc/letsencrypt/live/pellets.10cal.ovh/fullchain.pem:/etc/certs/fullchain.pem:ro
-      - /etc/letsencrypt/live/pellets.10cal.ovh/privkey.pem:/etc/certs/privkey.pem:ro
-      - /srv/www/acme:/srv/www/acme:ro
-    depends_on: 
-      - pellets-shiny
+      - /etc/letsencrypt/live/noialimpapellets.publicvm.com/fullchain.pem:/etc/letsencrypt/live/noialimpapellets.publicvm.com/fullchain.pem:ro
+      - /etc/letsencrypt/live/noialimpapellets.publicvm.com/privkey.pem:/etc/letsencrypt/live/noialimpapellets.publicvm.com/privkey.pem:ro
     networks:
-      - default
-
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 60 pellets-shiny data_loader
+      - pellets
+    depends_on:
+      - pellets-shiny
 
 networks:
-  default:
+  pellets:
     driver: bridge
