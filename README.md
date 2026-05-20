@@ -1,6 +1,6 @@
 ### Outra Máis - Monitorización cidadá das praias de Galicia
 
-Aplicación web para facer seguemento da situación das praias galegas. A app está dispoñible na seguinte [web](https://pellets.10cal.ovh/), ademáis de na web de [Noia Limpa](!https://www.noialimpa.org/informacion-pellets-plastico-galicia).
+Aplicación web para facer seguemento da situación das praias galegas. A app está dispoñible na seguinte [web](https://noialimpapellets.publicvm.com/), ademáis de na web de [Noia Limpa](!https://www.noialimpa.org/informacion-pellets-plastico-galicia).
 
 
 
