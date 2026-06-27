@@ -1,0 +1,55 @@
+/* MapaPellets — identidade visual (inesortega.github.io) */
+:root{
+  --c-residuos:#d6342a; --c-limpa:#2f9e44; --c-convocatoria:#e8920c; --c-evento:#6b3fa0;
+  --muted:#4f5f5e; --faint:#7c8c8b; --border-light:#dcebeb;
+}
+
+/* franxa superior teal, sinatura da web persoal */
+body{ border-top:3px solid #136f6f; }
+
+/* barra de navegación */
+.navbar{ background:#e6f0f0 !important; border-bottom:1px solid #c5dada; }
+.navbar .brand-title{ font-weight:680; letter-spacing:-.01em; font-size:1.05rem; }
+.navbar .nav-link{ font-weight:560; }
+
+/* textos introdutorios */
+.intro{ margin:.25rem 0 .75rem; }
+.intro h4, .lead h4{ font-weight:680; letter-spacing:-.01em; }
+.intro p, .lead p{ color:var(--muted); max-width:72ch; }
+
+/* mapa */
+.map-card{ padding:0; overflow:hidden; }
+.map-card .leaflet-container{ border-radius:12px; background:#e3f0f1; }
+
+/* tarxetas KPI */
+.stats-wrap{ display:flex; flex-direction:column; gap:1rem; padding-top:.25rem; }
+.kpi-card{ background:#fff; color:#11201f; border:1px solid var(--border-light);
+  border-left:4px solid #136f6f;
+  box-shadow:0 1px 2px rgba(17,32,31,.04), 0 6px 20px rgba(17,32,31,.06); }
+.kpi-card.kpi-danger{ border-left-color:var(--c-residuos); }
+.kpi-card.kpi-success{ border-left-color:var(--c-limpa); }
+.kpi-card.kpi-warning{ border-left-color:var(--c-convocatoria); }
+.kpi-card .value-box-value{ font-size:2.1rem; font-weight:680; font-variant-numeric:tabular-nums;
+  line-height:1; color:#11201f; }
+.kpi-title{ display:flex; flex-direction:column; gap:1px;
+  font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+.kpi-sub{ font-weight:500; letter-spacing:0; text-transform:none; color:var(--faint); font-size:.7rem; }
+
+/* tarxetas de gráficas */
+.card-header{ font-weight:620; font-size:.95rem; }
+
+/* indicador "en directo" */
+.live-pill{ display:inline-flex; align-items:center; gap:7px; font-size:.78rem; color:var(--muted);
+  padding:0 .35rem; }
+.live-dot{ width:8px; height:8px; border-radius:50%; background:var(--c-limpa); }
+@media (prefers-reduced-motion: no-preference){
+  .live-dot{ animation:livepulse 2s ease-out infinite; }
+  @keyframes livepulse{ 0%{box-shadow:0 0 0 0 rgba(47,158,68,.5)} 100%{box-shadow:0 0 0 8px rgba(47,158,68,0)} }
+}
+
+/* pé de páxina */
+.app-footer{ text-align:center; padding:12px; color:var(--muted); font-size:.8rem;
+  border-top:1px solid var(--border-light); }
+
+/* agradecementos */
+.ack{ max-width:72ch; color:#11201f; line-height:1.6; }

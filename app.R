@@ -4,9 +4,8 @@ library(dplyr)
 library(tibble)
 if(!require("leaflet")) install.packages("leaflet")
 library(shiny)
+library(bslib)
 library(shinyWidgets)
-library(shinydashboard)
-library(shinythemes)
 library(shinyjs)
 library(htmltools)
 library(readr)
@@ -15,137 +14,147 @@ library(shinycssloaders)
 
 source("data_loader.R")
 
-sidebar <- dashboardSidebar(
-  width = 400,
-  tags$head(tags$style(HTML(".sidebar { height: auto; overflow-y}" ))),
-  tags$style(HTML(".sidebar-menu { margin-bottom: 20px; }")),  # Add margin to sidebar-menu
-  sidebarMenu(id = "sidebarID",
-    menuItem("Mapa en tempo real", tabName = "map"),
-    menuItem("Datos e estadísticas", tabName = "info", badgeLabel = "Novo!", badgeColor = "green"),
-    #menuItem("Formulario de recollida de datos", icon = icon("info"), newtab = TRUE, href = "https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse"),
-    menuItem("Filtrado de información", tabName = "filter",
-             tags$style(HTML(".sidebar-menu .treeview-menu { padding-top: 5px; padding-bottom: 5px }")),  # Add margin to shiny-input-container
-             sliderInput(
-               inputId = "dateRange",
-               label = "Filtrado por data:",
-               min = as.Date("2024-01-01"),
-               max = Sys.Date() + 2,
-               value = c(Sys.Date() - 30, Sys.Date() + 1)
-             ),
-             pickerInput("legendFilter",
-                         "Filtrar por tipo de actualización:",
-                         choices = c(
-                           "Pellets" = "Hai pellets na praia",
-                           "Biosoportes" = "Hai biosoportes",
-                           "Chapapote" = "Hai chapapote",
-                           "Praia limpa" = "A praia está limpa",
-                           "Xa non hai (a praia quedaba limpa)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
-                           "Convocatoria de limpeza" = "Convocatoria de xornada de limpeza",
-                           "Outras Convocatorias" = "Outras Convocatorias"
-                         ), multiple = TRUE,
-                         selected = c(
-                           "Hai pellets na praia",
-                           "Hai biosoportes",
-                           "Hai chapapote",
-                           "A praia está limpa",
-                           "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
-                           "Convocatoria de xornada de limpeza",
-                           "Outras Convocatorias"
-                         )),
-             selectInput(inputId = "select_provincia", label = "Provincia", multiple = TRUE, choices=c(), selected=""),
-             selectInput(inputId = "select_concello", label = "Concello", multiple = TRUE, choices=c(), selected="")
-             ),
-    menuItem("Información adicional", tabName = "info_add", startExpanded = TRUE,
-             uiOutput("sidebarContent")),
-    menuItem("Agradecementos", tabName = "ack")
-    )
-)
-body <- dashboardBody(
-  tags$head(tags$style(HTML('.skin-blue .main-header .logo {background-color: #3c8dbc;} .skin-blue .main-header .logo:hover {background-color: #3c8dbc;}'))),
-  tags$style(HTML(".leaflet { height: calc(100vh - 250px) !important; }")),
-  tags$style(HTML(".treeview-menu>li>a { padding-left: 10px; }")),  # Add padding to sidebarMenu icons
-  tags$style(HTML(".box-header { font-size: 15px; }")),
-  tabItems(
-    tabItem(tabName = "ack",
-            column(12,
-                   HTML(paste("Este proxecto é posible grazas a colaboración e recollida de datos de voluntarias; de Ana e Miguel das Chas; das voluntarias de Noia Limpa; e a cesión de recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
-                   )
-            ),
-    tabItem(tabName = "map",
-        column(12, h4("Mapa en tempo real da situación das praias galegas")),
-        #column(12, paste("Seguemento cidadán do estado das praias galegas despois do vertido de pellets.")),
-        column(12, paste("O mapa reflexa as actualizacións do estado das praias enviadas polos voluntarios. Podes atopar información estadística sobre as praias afectadas no menú Datos e estadísticas do panel lateral.")),
-        column(12, paste("Emprega o panel lateral para filtrar a información por tipo de vertido, concello, provincia ou data de actualización. Por defecto, amósase a información da última semana. ")),
-        column(12, HTML("<br>")),
-        column(12, leafletOutput("mymap"))
-    ),
-    tabItem(tabName = "info",
-            tags$style(HTML(".box-header { font-size: 10px; }")),  # Adjust the font size as needed
-        column(12, h4("Datos e estadísticas")),
-        column(12, HTML(paste("Todos os datos recóllense de xeito colaborativo por voluntarios e entidades colaboradoras a través deste ", "<a href='https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse' target='_blank'>formulario</a>."))),
-        column(12, HTML(paste("Os seguintes datos e estadísticas calcúlanse de forma automática - para os filtros seleccionados no panel lateral - e poden contar erros debido ao reporte non estandarizado do nome da praia por parte dos usuarios do formulario."))),
-        column(12, HTML("<br>")),
-        fluidRow(
-          column(12,
-            box(status = "primary", HTML("<div style='font-size:15px'>Num. Concellos</div>"), HTML("<div style='font-size:10px'>con actualizacións recibidas</div>"),
-                withSpinner(valueBoxOutput("n_concellos")),
-                width = 3),
-            box(status = "primary", HTML("<div style='font-size:15px'>Num. Praias</div>"), HTML("<div style='font-size:10px'>con actualizacións recibidas</div>"),
-                withSpinner(valueBoxOutput("n_praias")), width = 3),
-            box(status = "primary", HTML("<div style='font-size:15px'>Total actualizacións</div>"), HTML("<div style='font-size:10px'>recibidas no formulario</div>"),
-                withSpinner(valueBoxOutput("n_update")),
-                width = 3),
-            box(status = "primary", HTML("<div style='font-size:15px'>Notificacións 112</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
-                withSpinner(valueBoxOutput("n_112")),
-                width = 3)
-          )
-        ),
-        #column(12, h4("Reconto por tipo de actualización:")),
-        fluidRow(
-          column(12,
-                 box(status = "primary", HTML("<div style='font-size:15px'>Praias con Residuos</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
-                     withSpinner(valueBoxOutput("n_pellets")), width = 4),
-                 box(status = "primary", HTML("<div style='font-size:15px'>Praia limpa</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
-                     withSpinner(valueBoxOutput("n_limpas")), width = 4),
-                 box(status = "primary", HTML("<div style='font-size:15px'>Outros eventos</div>"), HTML("<div style='font-size:10px'>Total actualizacións recibidas</div>"),
-                     withSpinner(valueBoxOutput("n_limpezas")), width = 4)
-          )
-        ),
-        fluidRow(
-          column(12,
-                 box(status = "primary",
-                     HTML("<div style='font-size:15px'>Evolución diaria - Actualizacións recibidas por tipo de residuo </div>"),
-                     withSpinner(plotOutput("cum_residuos")), width = 12)
-                 #box(status = "primary",  HTML("<div style='font-size:15px'>Top 5 Concellos</div>"), withSpinner(plotOutput("top5_concellos")), width = 6)
-          )
-        ),
-        fluidRow(
-          column(12,
-                 box(status = "primary",
-                     HTML("<div style='font-size:15px'>Evolución diaria - Actualizacións Recibidas </div>"),
-                     withSpinner(plotOutput("cum_praias")), width = 12)
-                 #box(status = "primary",  HTML("<div style='font-size:15px'>Top 5 Concellos</div>"), withSpinner(plotOutput("top5_concellos")), width = 6)
-                 )
-        )
-    )
-  ),
-  useShinyjs()
+# ---- Tema visual (identidade de inesortega.github.io) -----------------------
+app_theme <- bs_theme(
+  version = 5,
+  bg = "#f7fbfb",
+  fg = "#11201f",
+  primary = "#136f6f",
+  secondary = "#4f5f5e",
+  success = "#2f9e44",
+  warning = "#e8920c",
+  danger  = "#d6342a",
+  base_font = font_collection("Inter", "system-ui", "-apple-system",
+                              "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"),
+  "border-color" = "#dcebeb"
 )
 
-ui <- tagList(dashboardPage(skin = "black",
-      dashboardHeader(
-        title = "Unha Vez Máis",
-        titleWidth = 400
-      ),
-      sidebar = sidebar,
-      body = body
+# ---- Panel lateral de filtros (mesmos inputId que a versión orixinal) -------
+filters <- sidebar(
+  width = 340,
+  sliderInput(
+    inputId = "dateRange",
+    label = "Filtrado por data:",
+    min = as.Date("2024-01-01"),
+    max = Sys.Date() + 2,
+    value = c(Sys.Date() - 30, Sys.Date() + 1)
   ),
-  tags$footer(
-    style = "text-align: center; padding: 10px; background-color: #fff; height:auto",
-    "Author: ", tags$a("Inés Ortega Fernández", href = "https://inesortega.github.io/"),
-    " | Contact: ", tags$a("datospellets@gmail.com", href = "datospellets@gmail.com")
+  pickerInput("legendFilter",
+              "Tipo de actualización:",
+              choices = c(
+                "Pellets" = "Hai pellets na praia",
+                "Biosoportes" = "Hai biosoportes",
+                "Chapapote" = "Hai chapapote",
+                "Praia limpa" = "A praia está limpa",
+                "Xa non hai (a praia quedaba limpa)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
+                "Convocatoria de limpeza" = "Convocatoria de xornada de limpeza",
+                "Outras Convocatorias" = "Outras Convocatorias"
+              ), multiple = TRUE,
+              selected = c(
+                "Hai pellets na praia",
+                "Hai biosoportes",
+                "Hai chapapote",
+                "A praia está limpa",
+                "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
+                "Convocatoria de xornada de limpeza",
+                "Outras Convocatorias"
+              )),
+  selectInput(inputId = "select_provincia", label = "Provincia", multiple = TRUE, choices = c(), selected = ""),
+  selectInput(inputId = "select_concello", label = "Concello", multiple = TRUE, choices = c(), selected = ""),
+  hr(),
+  uiOutput("sidebarContent")
+)
+
+# ---- Tarxeta KPI auxiliar ---------------------------------------------------
+kpi_box <- function(outputId, title, subtitle = NULL, accent = "primary") {
+  value_box(
+    title = tags$span(class = "kpi-title", title,
+                      if (!is.null(subtitle)) tags$span(class = "kpi-sub", subtitle)),
+    value = textOutput(outputId, inline = TRUE),
+    class = paste0("kpi-card kpi-", accent)
+  )
+}
+
+# ---- UI ---------------------------------------------------------------------
+ui <- page_navbar(
+  title = tags$span(class = "brand-title", "Unha Vez Máis"),
+  id = "sidebarID",            # conserva input$sidebarID (== "map") que usa o server
+  theme = app_theme,
+  fillable = FALSE,
+  sidebar = filters,
+  header = tagList(
+    useShinyjs(),
+    tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"))
+  ),
+
+  nav_panel(
+    title = "Mapa en tempo real",
+    value = "map",
+    div(class = "intro",
+        h4("Mapa en tempo real da situación das praias galegas"),
+        p("O mapa reflicte as actualizacións do estado das praias enviadas polo voluntariado. ",
+          "Atoparás información estatística na pestana «Datos e estatísticas»."),
+        p("Emprega o panel lateral para filtrar a información por tipo de vertido, concello, ",
+          "provincia ou data de actualización. Por defecto amósase a última semana.")
+    ),
+    card(
+      full_screen = TRUE,
+      class = "map-card",
+      leafletOutput("mymap", height = "calc(100vh - 250px)")
+    )
+  ),
+
+  nav_panel(
+    title = "Datos e estatísticas",
+    div(class = "stats-wrap",
+      div(class = "lead",
+        h4("Datos e estatísticas"),
+        p(HTML(paste0(
+          "Os datos recóllense de xeito colaborativo a través deste ",
+          "<a href='https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse' target='_blank'>formulario</a>. ",
+          "As estatísticas calcúlanse automaticamente para os filtros seleccionados e poden ",
+          "conter erros polo reporte non estandarizado do nome da praia."))
+        )
+      ),
+      layout_columns(
+        col_widths = c(3, 3, 3, 3),
+        kpi_box("n_concellos", "Concellos", "con actualizacións"),
+        kpi_box("n_praias", "Praias", "con actualizacións"),
+        kpi_box("n_update", "Actualizacións", "recibidas no formulario"),
+        kpi_box("n_112", "Notificacións 112", "total recibidas", accent = "danger")
+      ),
+      layout_columns(
+        col_widths = c(4, 4, 4),
+        kpi_box("n_pellets", "Praias con residuos", accent = "danger"),
+        kpi_box("n_limpas", "Praia limpa", accent = "success"),
+        kpi_box("n_limpezas", "Outros eventos", accent = "warning")
+      ),
+      layout_columns(
+        col_widths = c(6, 6),
+        card(card_header("Evolución diaria — por tipo de residuo"),
+             withSpinner(plotOutput("cum_residuos"))),
+        card(card_header("Evolución diaria — actualizacións recibidas"),
+             withSpinner(plotOutput("cum_praias")))
+      )
+    )
+  ),
+
+  nav_panel(
+    title = "Agradecementos",
+    div(class = "ack",
+        HTML(paste("Este proxecto é posible grazas á colaboración e recollida de datos de voluntarias; de Ana e Miguel das Chas; das voluntarias de Noia Limpa; e á cesión de recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
+    )
+  ),
+
+  nav_spacer(),
+  nav_item(tags$span(class = "live-pill", tags$span(class = "live-dot"), "En directo")),
+
+  footer = tags$footer(class = "app-footer",
+    "Autoría: ", tags$a("Inés Ortega-Fernández", href = "https://inesortega.github.io/"),
+    " · Contacto: ", tags$a("datospellets@gmail.com", href = "mailto:datospellets@gmail.com")
   )
 )
+
 server <- function(input, output, session) {
 
   updateTimestamp <- reactiveValues(time = Sys.time())
@@ -262,7 +271,6 @@ server <- function(input, output, session) {
 
           output$sidebarContent <- renderUI({
             sidebar <- fluidRow(
-              tags$style(HTML(".skin-black .sidebar-menu>li>.treeview-menu {padding-left: 15px;}")),  # Add margin to shiny-input-container
               column(12, HTML(paste(
                 "<br><strong>Praia: </strong>", htmlEscape(info$Nome.da.praia..Concello), "<br>",
                 "<strong>Data da limpeza: </strong>", htmlEscape(info$Marca.temporal), "<br>",
@@ -313,58 +321,52 @@ server <- function(input, output, session) {
   })
 
   ###### RENDER Statisticsc ################
-  output$n_concellos <- renderValueBox({
+  output$n_concellos <- renderText({
     distinct_counts <- data() %>%
       count(Concello)
     n_concellos <- length(unique(distinct_counts$Concello))
-    customValueBox(n_concellos)
+    box_value(n_concellos)
   })
 
-  output$n_praias <- renderValueBox({
+  output$n_praias <- renderText({
     praias_tipos <- c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes", "Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
     distinct_counts <- data() %>%
       count(Nome.da.praia..Concello, Concello, Tipo.de.actualización.que.nos.queres.facer.chegar) %>%
       filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% praias_tipos)
-    customValueBox(length(unique(distinct_counts$Nome.da.praia..Concello)))
+    box_value(length(unique(distinct_counts$Nome.da.praia..Concello)))
 
   })
 
-  output$n_update <- renderValueBox({
-    customValueBox(nrow(data()))
+  output$n_update <- renderText({
+    box_value(nrow(data()))
   })
 
-  # output$n_animais <- renderValueBox({
-  #   distinct_counts <- data() %>%
-  #     count(Atopaches.animáis.mortos.) %>% filter(Atopaches.animáis.mortos. == "Si")
-  #   customValueBox(distinct_counts)
-  # })
-
-  output$n_112 <- renderValueBox({
+  output$n_112 <- renderText({
     distinct_counts <- data() %>%
       count(Está.avisado.o.112.) %>% filter(Está.avisado.o.112. == "Si")
-    customValueBox(distinct_counts)
+    box_value(distinct_counts)
   })
 
   reconto <- reactive({
     distinct_counts <- data() %>% count(Nome.da.praia..Concello, Concello, Tipo.de.actualización.que.nos.queres.facer.chegar)
   })
 
-  output$n_pellets <- renderValueBox({
+  output$n_pellets <- renderText({
     count <- reconto() %>%
       filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes"))
-    customValueBox(sum(count$n))
+    box_value(sum(count$n))
   })
 
-  output$n_limpas <- renderValueBox({
+  output$n_limpas <- renderText({
     count <- reconto() %>%
       filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("A praia está limpa", "Non hai pellets na praia", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"))
-    customValueBox(sum(count$n))
+    box_value(sum(count$n))
   })
 
-  output$n_limpezas <- renderValueBox({
+  output$n_limpezas <- renderText({
     count <- reconto() %>%
       filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Convocatoria de xornada de limpeza", "Outras Convocatorias"))
-    customValueBox(sum(count$n))
+    box_value(sum(count$n))
   })
 
   output$top5 <- renderPlot({
@@ -375,25 +377,18 @@ server <- function(input, output, session) {
     ggplot(top5, aes(x = factor(Concello), y = n, fill = n)) +
       geom_col(stat = "n",  show.legend = FALSE) +
       geom_text(aes(label = Concello, y = n), position = position_stack(vjust = 0.5), color = "white") +
-      scale_fill_gradient(low = "#428BCA", high = "#428BCA") +
+      scale_fill_gradient(low = "#136f6f", high = "#136f6f") +
       labs(x = NULL, y = NULL) + coord_flip() +
       theme(
         panel.background = element_rect(fill = "transparent", colour = NA),
         plot.background = element_rect(fill = "transparent", colour = NA),
-        #panel.grid = element_blank(),
         panel.border = element_blank(),
         plot.margin = unit(c(0, 0, 0, 0), "null"),
-        panel.margin = unit(c(0, 0, 0, 0), "null"),
-        #axis.ticks = element_blank(),
         axis.text = element_blank(),
-        #axis.title = element_blank(),
         axis.line = element_blank(),
         axis.line.x = element_line(color = "black", size = 1),
         axis.text.x = element_text(color = "black", size = 10),
-        legend.position = "none",
-        axis.ticks.length = unit(0, "null"),
-        axis.ticks.margin = unit(0, "null"),
-        legend.margin = unit(0, "null")
+        legend.position = "none"
       )
   })
 
@@ -406,11 +401,11 @@ server <- function(input, output, session) {
       summarize(sum_n = sum(n))
 
     ggplot(summarized_data, aes(x = Data.Norm, y = sum_n)) +
-      geom_line(linewidth = 1, lineend = "round", linejoin = "mitre", colour = "#428BCA") +
+      geom_area(fill = "#136f6f", alpha = 0.15) +
+      geom_line(linewidth = 1, lineend = "round", linejoin = "mitre", colour = "#136f6f") +
       labs(x = "Data", y = "Número de Actualizacións") +
-      theme(
-        axis.text.x = element_text(color = "black", size = 10)
-      )
+      theme_minimal(base_size = 13) +
+      theme(plot.background = element_rect(fill = "transparent", colour = NA))
   })
 
 
@@ -428,11 +423,11 @@ server <- function(input, output, session) {
     # Plot each Residuo as a separate line
     ggplot(summarized_data, aes(x = Data.Norm, y = sum_n, color = Residuo, group = Residuo)) +
       geom_line(linewidth = 1, lineend = "round", linejoin = "mitre") +
+      scale_color_manual(values = c("Pellets" = "#d6342a", "Biosoportes" = "#e8920c", "Chapapote" = "#6b3fa0")) +
       labs(x = "Data", y = "Número de Actualizacións", color = "Residuo") +
-      theme(
-        axis.text.x = element_text(color = "black", size = 10),
-        legend.position = "bottom" # Optional: adjust the legend position
-      )
+      theme_minimal(base_size = 13) +
+      theme(legend.position = "bottom",
+            plot.background = element_rect(fill = "transparent", colour = NA))
   })
 
   ###### RENDER MAP ################
@@ -469,7 +464,7 @@ server <- function(input, output, session) {
   # Render map
   output$mymap <- renderLeaflet({
     leaflet() %>%
-      addTiles() %>%
+      addProviderTiles(providers$CartoDB.Positron) %>%
       setView(lng = -8.1, lat = 42.5, zoom = 7) %>%
       addLegend(
         position = "bottomright",
@@ -600,26 +595,12 @@ server <- function(input, output, session) {
   })
 }
 
-# Custom valueBox function
-customValueBox <- function(value) {
-  if(class(value)[1] == "tbl_df"){
-    if(nrow(value) == 0){
-      value = 0
-    }
-    else{
-      value = value$n
-    }
+# Formatea o valor dunha tarxeta KPI (admite un número ou un tibble de count)
+box_value <- function(value) {
+  if (inherits(value, "tbl_df")) {
+    value <- if (nrow(value) == 0) 0 else value$n
   }
-  tags$div(
-    style = "background-color: #f5f5f5; padding: 10px",
-    tags$p(
-      style = "margin: 0;",
-      tags$strong(
-        style = "font-size: 35px; color: black; text-align: center;",
-        value
-      )
-    )
-  )
+  format(value, big.mark = " ", trim = TRUE)
 }
 
 if(Sys.getenv("ENV") == "docker"){
