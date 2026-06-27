@@ -100,6 +100,57 @@ sudo certbot renew --dry-run
 > `sudo certbot certonly --webroot -w /srv/www/acme -d noialimpapellets.publicvm.com`.
 > Require que nginx xa estea en marcha (polo que segue precisando o bootstrap *standalone* a primeira vez, ou un certificado autoasinado temporal).
 
+### Alternativa: certificado autoasinado con autorrenovación
+
+Se prefires non depender de Let's Encrypt (p.ex. mentres o porto 80 non é accesible publicamente), podes usar un certificado **autoasinado** que se renova só. Os navegadores mostrarán un aviso de "sitio non seguro" — é o comportamento esperado nun autoasinado.
+
+O script [scripts/selfsigned_cert.sh](scripts/selfsigned_cert.sh) xera o certificado (en `/etc/letsencrypt/live/<dominio>/`, onde o espera nginx) e recarga o contedor. Só renova se caduca en menos de 30 días, polo que é idempotente.
+
+**Primeira xeración:**
+
+```bash
+sudo ./scripts/selfsigned_cert.sh
+docker compose up -d
+```
+
+**Autorrenovación (timer de systemd, comproba a diario):**
+
+Crea os dous ficheiros (axusta a ruta do script ao teu repo, p.ex. `/home/MapaPellets`):
+
+```ini
+# /etc/systemd/system/selfsigned-cert.service
+[Unit]
+Description=Renovar certificado autoasinado de nginx
+
+[Service]
+Type=oneshot
+ExecStart=/home/MapaPellets/scripts/selfsigned_cert.sh
+```
+
+```ini
+# /etc/systemd/system/selfsigned-cert.timer
+[Unit]
+Description=Comproba/renova o certificado autoasinado a diario
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Actívao e compróbao:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now selfsigned-cert.timer
+systemctl list-timers selfsigned-cert.timer
+```
+
+> Alternativa con cron, en `/etc/cron.d/selfsigned-cert`:
+> `0 3 * * * root /home/MapaPellets/scripts/selfsigned_cert.sh >> /var/log/selfsigned-cert.log 2>&1`
+
 ### Compilación e despregue manual (fallback offline)
 
 Se precisas construír localmente e transferir un `.tar` (por exemplo, sen acceso a GHCR):

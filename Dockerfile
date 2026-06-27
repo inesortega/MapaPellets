@@ -60,6 +60,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     r-cran-tibble \
     r-cran-leaflet \
     r-cran-stringr \
+    r-cran-stringi \
+    r-cran-httr \
+    r-cran-ggplot2 \
+    r-cran-shinycssloaders \
     r-cran-htmltools \
     r-cran-readr \
     r-cran-sf \
@@ -74,8 +78,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY ./requirements-src.R .
 
+# Verificación: cárganse TODOS os paquetes que usa a app, para que calquera que
+# falte rompa o build (no CI) en vez de fallar en tempo de execución.
 RUN Rscript requirements-src.R && \
-    R -e "library(shiny); library(leaflet); library(googlesheets4); library(shinyWidgets); library(shinyjs); library(shinydashboard); library(dplyr); library(readr)"
+    R -e "library(shiny); library(leaflet); library(googlesheets4); library(shinyWidgets); library(shinyjs); library(shinydashboard); library(shinythemes); library(shinycssloaders); library(dplyr); library(tibble); library(readr); library(stringr); library(stringi); library(httr); library(htmltools); library(magrittr); library(ggplot2); library(tidygeocoder)"
 
 COPY ./ /app
 
