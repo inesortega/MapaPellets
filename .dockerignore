@@ -1,0 +1,31 @@
+# Control de versións
+.git
+.gitignore
+.dockerignore
+
+# Segredos / credenciais (NUNCA dentro da imaxe; móntanse como volume/env)
+token-*.json
+.Renviron
+.secrets
+*.pem
+*.key
+
+# Artefactos de build
+*.tar
+*.tar.gz
+
+# Scripts de despregue (non se usan dentro do contedor)
+scripts/
+
+# Infra / docs (non necesarios para executar a app shiny)
+nginx/
+docker-compose.yml
+README.md
+
+# Ficheiros de sesión R / proxecto
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+rsconnect
+*.Rproj
