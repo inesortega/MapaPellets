@@ -4,3 +4,12 @@
 .secrets
 .Rproj.user
 rsconnect
+
+# Credenciais / segredos (nunca commitear)
+token-*.json
+*.pem
+*.key
+
+# Artefactos de build de Docker
+*.tar
+*.tar.gz

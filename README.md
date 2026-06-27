@@ -1,14 +1,14 @@
-### Outra Máis - Monitorización cidadá das praias de Galicia
+# Outra Máis - Monitorización cidadá das praias de Galicia
 
 Aplicación web para facer seguemento da situación das praias galegas. A app está dispoñible na seguinte [web](https://pellets.10cal.ovh/), ademáis de na web de [Noia Limpa](!https://www.noialimpa.org/informacion-pellets-plastico-galicia).
 
 
 
-##### Shiny
+## Shiny
 
 O ficheiro `app.R` contén o código para a visualización da app web de shiny. A app carga os datos a intervalos regulares de 5min a partir do ficheiro `data/praias.csv`, e mostra a información no mapa. 
 
-##### Preprocesamento de datos
+### Preprocesamento de datos
 
 O ficheiro `data_loader.R` é o encargado da obtención e pre-procesamento dos datos. Carga os datos da folla de Excel online, e dependendo do parámetro de actualización `update_all` ou `update_all_dataset` actualiza a información dispoñible. 
 
@@ -18,7 +18,7 @@ O ficheiro `data_loader.R` é o encargado da obtención e pre-procesamento dos d
 
 Unha vez seleccionados os datos que é necesario actualizar, empregamos a librería `tidygeocode` para preprocesar a xeolocalización aportada polo usuario. Se os datos non son válidos, entón tentamos obter a xeolocalización a partires da información do campo `Praia.Concello`, facendo un proceso de `reverse geocoding`. 
 
-##### Actualización de datos
+### Actualización de datos
 
 O ficherio `update_historical.R` executa un proceso en bucle para executar as tarefas de actualización de datos de forma periódica: 
 
@@ -26,7 +26,7 @@ O ficherio `update_historical.R` executa un proceso en bucle para executar as ta
 - Actualización dos datos diarios: cada hora
 - Actualización do dataset completo: diariamente, as 3AM. 
 
-#### Despregue con docker
+## Despregue con docker
 
 Compilar a imaxe: 
 
@@ -38,4 +38,30 @@ Lanzar os seguintes comandos para actualizar a imaxe e desplegar a nova versión
 ```
 sudo docker container rm -f pellets-shiny
 sudo docker-compose up -d
+```
+
+### Compilación local
+
+Lanzar o seguinte comando: 
+
+```
+chmod +x scripts/export_image.sh scripts/import_and_deploy_remote.sh
+./scripts/export_image.sh pellets-shiny.tar.gz
+```
+
+Copiar o ficheiro tar no servidor por FTP / SCP
+
+```
+scp pellets-shiny.tar.gz user@SERVER:/home/user/
+```
+
+No servidor: 
+
+```
+./scripts/import_and_deploy_remote.sh /home/user/pellets-shiny.tar.gz /home/user/MapaPellets
+
+# ou manualmente
+gunzip -c /home/user/pellets-shiny.tar.gz | docker load
+cd /home/user/MapaPellets
+docker compose up -d
 ```

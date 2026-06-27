@@ -31,8 +31,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
+# Nota: r-cran-shiny 1.14.0 no repo apt non declara correctamente as súas
+# dependencias de tempo de execución (httpuv, mime, jsonlite, ...), polo que
+# se instalan aquí de forma explícita.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     r-cran-shiny \
+    r-cran-httpuv \
+    r-cran-mime \
+    r-cran-jsonlite \
+    r-cran-fontawesome \
+    r-cran-r6 \
+    r-cran-later \
+    r-cran-promises \
+    r-cran-rlang \
+    r-cran-fastmap \
+    r-cran-commonmark \
+    r-cran-glue \
+    r-cran-bslib \
+    r-cran-cachem \
+    r-cran-lifecycle \
     r-cran-shinywidgets \
     r-cran-shinythemes \
     r-cran-shinydashboard \
