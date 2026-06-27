@@ -13,7 +13,8 @@
 set -euo pipefail
 
 OUTPUT="${1:-pellets-shiny.tar.gz}"
-IMAGE="${IMAGE:-pellets-shiny:latest}"
+# Mesma etiqueta que usa docker-compose.yml, para que o tar cargado coincida.
+IMAGE="${IMAGE:-ghcr.io/inesortega/mapapellets:latest}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 # Usar o builder integrado de Docker Desktop (driver docker), que constrúe no
 # propio daemon con emulación. Evita arrancar un contedor moby/buildkit aparte

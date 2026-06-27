@@ -28,40 +28,46 @@ O ficherio `update_historical.R` executa un proceso en bucle para executar as ta
 
 ## Despregue con docker
 
-Compilar a imaxe: 
+A imaxe constrúese e publícase automaticamente en **GitHub Container Registry (GHCR)** mediante GitHub Actions. A imaxe resultante é `ghcr.io/inesortega/mapapellets`.
+
+### CI/CD (automático)
+
+Cada `push` a `master` (ou unha etiqueta `v*`) dispara o workflow [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml), que:
+
+1. Constrúe a imaxe para `linux/amd64` nun runner amd64 nativo (sen emulación).
+2. Publícaa en `ghcr.io/inesortega/mapapellets` coas etiquetas `latest`, `sha-<commit>` e, no caso de tags, a versión semántica.
+
+> **Visibilidade do paquete:** a primeira vez créase como *privado*. Para que o servidor poida descargalo sen autenticarse, faino público en GitHub (*Packages → mapapellets → Package settings → Change visibility → Public*). Se o mantés privado, autentícate no servidor cun *Personal Access Token* con permiso `read:packages`.
+
+### Despregue no servidor (pull dende GHCR)
+
+No servidor, dentro do repo clonado:
 
 ```
-docker build -t pellets-shiny:latest .
-```
+# (só se o paquete é privado) autenticarse en GHCR
+echo <PAT_read:packages> | docker login ghcr.io -u inesortega --password-stdin
 
-Lanzar os seguintes comandos para actualizar a imaxe e desplegar a nova versión: 
-```
-sudo docker container rm -f pellets-shiny
-sudo docker-compose up -d
-```
+# despregar a última versión
+./scripts/deploy_remote.sh
 
-### Compilación local
-
-Lanzar o seguinte comando: 
-
-```
-chmod +x scripts/export_image.sh scripts/import_and_deploy_remote.sh
-./scripts/export_image.sh pellets-shiny.tar.gz
-```
-
-Copiar o ficheiro tar no servidor por FTP / SCP
-
-```
-scp pellets-shiny.tar.gz user@SERVER:/home/user/
-```
-
-No servidor: 
-
-```
-./scripts/import_and_deploy_remote.sh /home/user/pellets-shiny.tar.gz /home/user/MapaPellets
-
-# ou manualmente
-gunzip -c /home/user/pellets-shiny.tar.gz | docker load
-cd /home/user/MapaPellets
+# ... ou manualmente
+git pull
+docker compose pull
 docker compose up -d
 ```
+
+O servidor segue precisando o directorio `.secrets/` (coa clave de Google) e as variables de entorno definidas en `docker-compose.yml`; eses segredos **non** van dentro da imaxe.
+
+### Compilación e despregue manual (fallback offline)
+
+Se precisas construír localmente e transferir un `.tar` (por exemplo, sen acceso a GHCR):
+
+```
+./scripts/export_image.sh pellets-shiny.tar.gz
+scp pellets-shiny.tar.gz user@SERVER:/home/user/
+
+# no servidor
+./scripts/import_and_deploy_remote.sh /home/user/pellets-shiny.tar.gz /home/user/MapaPellets
+```
+
+> En Apple Silicon (Mac M-series) o build local require Docker Desktop co *containerd image store* desactivado, xa que o destino é `linux/amd64` e a extracción de capas amd64 falla en caso contrario.

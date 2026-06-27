@@ -1,7 +1,7 @@
 services:
   data_loader:
     restart: "no"
-    image: pellets-shiny:latest
+    image: ghcr.io/inesortega/mapapellets:latest
     container_name: data_loader
     volumes:
       - ./data:/app/data
@@ -15,7 +15,9 @@ services:
 
   pellets-shiny:
     restart: always
-    image: pellets-shiny:latest
+    image: ghcr.io/inesortega/mapapellets:latest
+    # 'build' mantense para desenvolvemento local / fallback offline.
+    # No servidor úsase 'docker compose pull' para baixar a imaxe de GHCR.
     build: .
     container_name: pellets-shiny
     volumes:
