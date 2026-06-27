@@ -38,8 +38,9 @@ services:
     volumes:
       - /srv/www/acme:/srv/www/acme
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - /etc/letsencrypt/live/noialimpapellets.publicvm.com/fullchain.pem:/etc/letsencrypt/live/noialimpapellets.publicvm.com/fullchain.pem:ro
-      - /etc/letsencrypt/live/noialimpapellets.publicvm.com/privkey.pem:/etc/letsencrypt/live/noialimpapellets.publicvm.com/privkey.pem:ro
+      # Móntase todo /etc/letsencrypt: os .pem en live/ son symlinks a archive/,
+      # e así as renovacións vense sen recrear o contedor.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - pellets
     depends_on:

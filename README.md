@@ -58,6 +58,48 @@ docker compose up -d
 
 O servidor segue precisando o directorio `.secrets/` (coa clave de Google) e as variables de entorno definidas en `docker-compose.yml`; eses segredos **non** van dentro da imaxe.
 
+### Certificados TLS (Let's Encrypt)
+
+O servizo `nginx` termina TLS para `noialimpapellets.publicvm.com`. Os certificados xéranse con **certbot** no host e móntanse no contedor a través de `/etc/letsencrypt`.
+
+**Requisitos previos:**
+
+- O dominio `noialimpapellets.publicvm.com` apunta (rexistro DNS A/AAAA) á IP do servidor.
+- Os portos 80 e 443 están abertos no firewall.
+- certbot instalado: `sudo apt update && sudo apt install -y certbot`
+
+**Primeira emisión (bootstrap):**
+
+nginx non pode arrancar co bloque HTTPS antes de que exista o certificado, así que a primeira vez emítese co plugin *standalone* (con nginx parado un intre para liberar o porto 80):
+
+```bash
+docker compose stop nginx
+sudo certbot certonly --standalone \
+  -d noialimpapellets.publicvm.com \
+  --agree-tos -m <o-teu-email> --no-eff-email
+docker compose up -d        # nginx xa atopa o certificado e arranca
+```
+
+Os ficheiros quedan en `/etc/letsencrypt/live/noialimpapellets.publicvm.com/` (`fullchain.pem` e `privkey.pem`), que é o que referencia [nginx/conf.d/nginx.conf](nginx/conf.d/nginx.conf).
+
+**Renovación automática:**
+
+certbot instala un *timer* de systemd que renova só (cando faltan menos de 30 días). Como a renovación *standalone* precisa o porto 80, engádense ganchos para parar e volver arrancar nginx (uns segundos de corte cada ~60 días):
+
+```bash
+sudo mkdir -p /etc/letsencrypt/renewal-hooks/pre /etc/letsencrypt/renewal-hooks/post
+printf '#!/bin/sh\ndocker stop nginx\n'  | sudo tee /etc/letsencrypt/renewal-hooks/pre/stop-nginx.sh
+printf '#!/bin/sh\ndocker start nginx\n' | sudo tee /etc/letsencrypt/renewal-hooks/post/start-nginx.sh
+sudo chmod +x /etc/letsencrypt/renewal-hooks/pre/stop-nginx.sh /etc/letsencrypt/renewal-hooks/post/start-nginx.sh
+
+# probar (executa os ganchos, así que nginx pararase e arrancará unha vez)
+sudo certbot renew --dry-run
+```
+
+> **Sen cortes (alternativa webroot):** como nginx serve `/.well-known/acme-challenge/` dende `/srv/www/acme`, podes emitir/renovar por webroot sen parar nada:
+> `sudo certbot certonly --webroot -w /srv/www/acme -d noialimpapellets.publicvm.com`.
+> Require que nginx xa estea en marcha (polo que segue precisando o bootstrap *standalone* a primeira vez, ou un certificado autoasinado temporal).
+
 ### Compilación e despregue manual (fallback offline)
 
 Se precisas construír localmente e transferir un `.tar` (por exemplo, sen acceso a GHCR):
