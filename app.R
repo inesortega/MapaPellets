@@ -34,31 +34,44 @@ filters <- sidebar(
   width = 340,
   sliderInput(
     inputId = "dateRange",
-    label = "Filtrado por data:",
+    label = "Filtrado por data",
     min = as.Date("2024-01-01"),
     max = Sys.Date() + 2,
     value = c(Sys.Date() - 30, Sys.Date() + 1)
   ),
-  pickerInput("legendFilter",
-              "Tipo de actualización:",
-              choices = c(
-                "Pellets" = "Hai pellets na praia",
-                "Biosoportes" = "Hai biosoportes",
-                "Chapapote" = "Hai chapapote",
-                "Praia limpa" = "A praia está limpa",
-                "Xa non hai (a praia quedaba limpa)" = "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
-                "Convocatoria de limpeza" = "Convocatoria de xornada de limpeza",
-                "Outras Convocatorias" = "Outras Convocatorias"
-              ), multiple = TRUE,
-              selected = c(
-                "Hai pellets na praia",
-                "Hai biosoportes",
-                "Hai chapapote",
-                "A praia está limpa",
-                "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
-                "Convocatoria de xornada de limpeza",
-                "Outras Convocatorias"
-              )),
+  checkboxGroupButtons(
+    inputId = "legendFilter",
+    label = "Tipo de actualización",
+    individual = TRUE,
+    size = "sm",
+    choiceNames = list(
+      HTML("<span class='sw' style='background:#d6342a'></span>Pellets"),
+      HTML("<span class='sw' style='background:#d6342a'></span>Biosoportes"),
+      HTML("<span class='sw' style='background:#d6342a'></span>Chapapote"),
+      HTML("<span class='sw' style='background:#2f9e44'></span>Praia limpa"),
+      HTML("<span class='sw' style='background:#2f9e44'></span>Xa non hai"),
+      HTML("<span class='sw' style='background:#e8920c'></span>Limpeza"),
+      HTML("<span class='sw' style='background:#6b3fa0'></span>Outras")
+    ),
+    choiceValues = c(
+      "Hai pellets na praia",
+      "Hai biosoportes",
+      "Hai chapapote",
+      "A praia está limpa",
+      "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
+      "Convocatoria de xornada de limpeza",
+      "Outras Convocatorias"
+    ),
+    selected = c(
+      "Hai pellets na praia",
+      "Hai biosoportes",
+      "Hai chapapote",
+      "A praia está limpa",
+      "Xa non hai (a praia quedaba limpa cando se encheu o formulario)",
+      "Convocatoria de xornada de limpeza",
+      "Outras Convocatorias"
+    )
+  ),
   selectInput(inputId = "select_provincia", label = "Provincia", multiple = TRUE, choices = c(), selected = ""),
   selectInput(inputId = "select_concello", label = "Concello", multiple = TRUE, choices = c(), selected = ""),
   hr(),
@@ -77,7 +90,10 @@ kpi_box <- function(outputId, title, subtitle = NULL, accent = "primary") {
 
 # ---- UI ---------------------------------------------------------------------
 ui <- page_navbar(
-  title = tags$span(class = "brand-title", "Unha Vez Máis"),
+  title = tags$span(class = "brand",
+    tags$span(class = "brand-mark", HTML('<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M2 15c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2" stroke="#cfeeee" stroke-width="1.7" stroke-linecap="round"/><path d="M2 19c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round"/><circle cx="17" cy="7.5" r="2.4" fill="#ffffff"/></svg>')),
+    tags$span(class = "brand-title", "Unha Vez Máis")
+  ),
   id = "sidebarID",            # conserva input$sidebarID (== "map") que usa o server
   theme = app_theme,
   fillable = FALSE,

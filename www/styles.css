@@ -53,3 +53,37 @@ body{ border-top:3px solid #136f6f; }
 
 /* agradecementos */
 .ack{ max-width:72ch; color:#11201f; line-height:1.6; }
+
+/* logotipo na cabeceira */
+.navbar .brand{ display:inline-flex; align-items:center; gap:10px; }
+.brand-mark{ width:32px; height:32px; border-radius:9px; display:inline-grid; place-items:center;
+  background:linear-gradient(150deg,#136f6f,#0e5757); box-shadow:0 1px 2px rgba(17,32,31,.15); }
+.brand-mark svg{ display:block; }
+
+/* panel de filtros */
+.bslib-sidebar-layout > .sidebar, .sidebar > .sidebar-content{ background:#fff; }
+.sidebar .control-label,
+.sidebar .shiny-input-container > label,
+.sidebar .shiny-input-container .control-label{
+  font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--faint); margin-bottom:.45rem;
+}
+
+/* chips do tipo de actualización (checkboxGroupButtons #legendFilter) */
+#legendFilter .btn-group-container-sw{ display:flex; flex-wrap:wrap; gap:6px; }
+#legendFilter .btn-group{ display:inline-flex; }
+#legendFilter .btn{
+  border:1px solid #c5dada !important; background:#fff !important; color:#11201f !important;
+  border-radius:99px !important; font-weight:540; font-size:.78rem; padding:5px 11px;
+  box-shadow:none !important; margin:0 !important;
+}
+#legendFilter .btn:not(.active){ opacity:.42; background:#eef5f5 !important; }
+#legendFilter .btn.active{ opacity:1; border-color:#136f6f !important; }
+#legendFilter .btn:focus-visible{ outline:2px solid #136f6f; outline-offset:2px; }
+#legendFilter .sw{ display:inline-block; width:9px; height:9px; border-radius:50%;
+  margin-right:7px; vertical-align:middle; }
+
+/* selects e slider máis limpos */
+.sidebar .selectize-input, .sidebar .form-control{ border-color:#c5dada; border-radius:8px; }
+.irs--shiny .irs-bar, .irs--shiny .irs-handle>i:first-child{ background:#136f6f; }
+.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single{ background:#136f6f; }
