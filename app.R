@@ -83,11 +83,12 @@ filters <- sidebar(
 )
 
 # ---- Tarxeta KPI auxiliar ---------------------------------------------------
-kpi_box <- function(outputId, title, subtitle = NULL, accent = "primary") {
+kpi_box <- function(outputId, title, subtitle = NULL, accent = "primary", trendId = NULL) {
   value_box(
     title = tags$span(class = "kpi-title", title,
                       if (!is.null(subtitle)) tags$span(class = "kpi-sub", subtitle)),
     value = textOutput(outputId, inline = TRUE),
+    if (!is.null(trendId)) tags$span(class = "kpi-trend", textOutput(trendId, inline = TRUE)),
     class = paste0("kpi-card kpi-", accent)
   )
 }
@@ -104,7 +105,6 @@ ui <- page_navbar(
   id = "sidebarID",            # conserva input$sidebarID (== "map") que usa o server
   theme = app_theme,
   fillable = FALSE,
-  sidebar = filters,
   header = tagList(
     useShinyjs(),
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"))
@@ -116,10 +116,13 @@ ui <- page_navbar(
       "Mapa en tempo real"
     ),
     value = "map",
-    card(
-      full_screen = TRUE,
-      class = "map-card",
-      leafletOutput("mymap", height = "calc(100vh - 140px)")
+    layout_sidebar(
+      sidebar = filters,
+      card(
+        full_screen = TRUE,
+        class = "map-card",
+        leafletOutput("mymap", height = "calc(100vh - 140px)")
+      )
     )
   ),
 
@@ -132,30 +135,29 @@ ui <- page_navbar(
       div(class = "lead",
         h4("Datos e estatísticas"),
         p(HTML(paste0(
-          "Os datos recóllense de xeito colaborativo a través deste ",
-          "<a href='https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse' target='_blank'>formulario</a>. ",
-          "As estatísticas calcúlanse automaticamente para os filtros seleccionados e poden ",
-          "conter erros polo reporte non estandarizado do nome da praia."))
+          "Resumo sobre todos os datos rexistrados. Recóllense de xeito colaborativo a través deste ",
+          "<a href='https://docs.google.com/forms/u/1/d/e/1FAIpQLScHqNH3yxk5yBKhOMZ0mVk0Wl-bNLCowqW9UFr0mo2Hj7klGA/formResponse' target='_blank'>formulario</a> ",
+          "e poden conter erros polo reporte non estandarizado do nome da praia."))
         )
       ),
       layout_columns(
         col_widths = c(3, 3, 3, 3),
-        kpi_box("n_concellos", "Concellos", "con actualizacións"),
-        kpi_box("n_praias", "Praias", "con actualizacións"),
-        kpi_box("n_update", "Actualizacións", "recibidas no formulario"),
-        kpi_box("n_112", "Notificacións 112", "total recibidas", accent = "danger")
+        kpi_box("n_concellos", "Concellos", "con actualizacións", trendId = "n_concellos_trend"),
+        kpi_box("n_praias", "Praias", "con actualizacións", trendId = "n_praias_trend"),
+        kpi_box("n_update", "Actualizacións", "recibidas no formulario", trendId = "n_update_trend"),
+        kpi_box("n_112", "Notificacións 112", "total recibidas", accent = "danger", trendId = "n_112_trend")
       ),
       layout_columns(
         col_widths = c(4, 4, 4),
         kpi_box("n_pellets", "Praias con residuos", accent = "danger"),
-        kpi_box("n_limpas", "Praia limpa", accent = "success"),
+        kpi_box("n_limpas", "Praias limpas", accent = "success"),
         kpi_box("n_limpezas", "Outros eventos", accent = "warning")
       ),
       layout_columns(
         col_widths = c(6, 6),
-        card(card_header("Evolución diaria — por tipo de residuo"),
+        card(card_header("Evolución por tipo de residuo (últimos 3 meses)"),
              withSpinner(plotOutput("cum_residuos"))),
-        card(card_header("Evolución diaria — actualizacións recibidas"),
+        card(card_header("Actualizacións recibidas por día (histórico)"),
              withSpinner(plotOutput("cum_praias")))
       )
     )
@@ -184,8 +186,11 @@ server <- function(input, output, session) {
 
   isFirstRun <- reactiveVal(TRUE)
 
-  data <- reactive({
+  # Datos base (lectura + transformacións), SEN filtros. Compártense entre o
+  # mapa (filtrado polo panel) e as estatísticas (datos completos).
+  all_data_r <- reactive({
     invalidateLater(350000)
+    all_data <- NULL
     tryCatch({
       all_data <- read_csv("./data/praias.csv", show_col_types = FALSE)
       all_data <- all_data %>%
@@ -212,6 +217,12 @@ server <- function(input, output, session) {
     }, error = function(e){
       message("Error loading data...")
     })
+    all_data
+  })
+
+  # Datos filtrados polo panel lateral (só para o mapa).
+  data <- reactive({
+    all_data <- all_data_r()
     # Filter data based on selected date range
     max <- max(as.Date(all_data$Data.Norm))
     min <- min(as.Date(all_data$Data.Norm))
@@ -252,114 +263,88 @@ server <- function(input, output, session) {
     filtered_data
   })
 
-  ###### RENDER Statisticsc ################
-  output$n_concellos <- renderText({
-    distinct_counts <- data() %>%
-      count(Concello)
-    n_concellos <- length(unique(distinct_counts$Concello))
-    box_value(n_concellos)
+  ###### Estatísticas (datos completos, sen filtros) ################
+  fulldata <- reactive(all_data_r())
+
+  residuo_tipos <- c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes")
+  praia_tipos   <- c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes",
+                     "Non hai pellets na praia", "A praia está limpa",
+                     "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
+  limpa_tipos   <- c("A praia está limpa", "Non hai pellets na praia",
+                     "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
+  evento_tipos  <- c("Convocatoria de xornada de limpeza", "Outras Convocatorias")
+
+  # Data de referencia = última con datos (en produción ≈ hoxe). As xanelas
+  # (semana, 3 meses) áncoranse a ela para que sempre amosen actividade recente.
+  ref_date <- reactive({
+    d <- fulldata()
+    if (is.null(d) || !nrow(d)) Sys.Date() else max(d$Data.Norm, na.rm = TRUE)
   })
+  last_week <- reactive(ref_date() - 7)
 
-  output$n_praias <- renderText({
-    praias_tipos <- c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes", "Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
-    distinct_counts <- data() %>%
-      count(Nome.da.praia..Concello, Concello, Tipo.de.actualización.que.nos.queres.facer.chegar) %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% praias_tipos)
-    box_value(length(unique(distinct_counts$Nome.da.praia..Concello)))
+  # Tendencia: actividade na última semana con datos
+  trend_chip <- function(n) {
+    if (is.na(n) || n == 0) "sen novidades esta semana"
+    else paste0("▲ ", format(n, big.mark = " ", trim = TRUE), " esta semana")
+  }
 
-  })
+  output$n_concellos <- renderText(box_value(length(unique(fulldata()$Concello))))
+  output$n_concellos_trend <- renderText(
+    trend_chip(length(unique((fulldata() %>% filter(Data.Norm >= last_week()))$Concello))))
 
-  output$n_update <- renderText({
-    box_value(nrow(data()))
-  })
+  output$n_praias <- renderText(
+    box_value(length(unique((fulldata() %>%
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% praia_tipos))$Nome.da.praia..Concello))))
+  output$n_praias_trend <- renderText(
+    trend_chip(length(unique((fulldata() %>%
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% praia_tipos,
+             Data.Norm >= last_week()))$Nome.da.praia..Concello))))
 
-  output$n_112 <- renderText({
-    distinct_counts <- data() %>%
-      count(Está.avisado.o.112.) %>% filter(Está.avisado.o.112. == "Si")
-    box_value(distinct_counts)
-  })
+  output$n_update <- renderText(box_value(nrow(fulldata())))
+  output$n_update_trend <- renderText(
+    trend_chip(nrow(fulldata() %>% filter(Data.Norm >= last_week()))))
 
-  reconto <- reactive({
-    distinct_counts <- data() %>% count(Nome.da.praia..Concello, Concello, Tipo.de.actualización.que.nos.queres.facer.chegar)
-  })
+  output$n_112 <- renderText(
+    box_value(sum(fulldata()$Está.avisado.o.112. == "Si", na.rm = TRUE)))
+  output$n_112_trend <- renderText(
+    trend_chip(sum((fulldata() %>% filter(Data.Norm >= last_week()))$Está.avisado.o.112. == "Si", na.rm = TRUE)))
 
-  output$n_pellets <- renderText({
-    count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes"))
-    box_value(sum(count$n))
-  })
+  output$n_pellets <- renderText(
+    box_value(sum(fulldata()$Tipo.de.actualización.que.nos.queres.facer.chegar %in% residuo_tipos)))
+  output$n_limpas <- renderText(
+    box_value(sum(fulldata()$Tipo.de.actualización.que.nos.queres.facer.chegar %in% limpa_tipos)))
+  output$n_limpezas <- renderText(
+    box_value(sum(fulldata()$Tipo.de.actualización.que.nos.queres.facer.chegar %in% evento_tipos)))
 
-  output$n_limpas <- renderText({
-    count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("A praia está limpa", "Non hai pellets na praia", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)"))
-    box_value(sum(count$n))
-  })
-
-  output$n_limpezas <- renderText({
-    count <- reconto() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Convocatoria de xornada de limpeza", "Outras Convocatorias"))
-    box_value(sum(count$n))
-  })
-
-  output$top5 <- renderPlot({
-    top5 <- data() %>%
-      count(Concello) %>%
-      arrange(desc(n)) %>%
-      head(5)
-    ggplot(top5, aes(x = factor(Concello), y = n, fill = n)) +
-      geom_col(stat = "n",  show.legend = FALSE) +
-      geom_text(aes(label = Concello, y = n), position = position_stack(vjust = 0.5), color = "white") +
-      scale_fill_gradient(low = "#136f6f", high = "#136f6f") +
-      labs(x = NULL, y = NULL) + coord_flip() +
-      theme(
-        panel.background = element_rect(fill = "transparent", colour = NA),
-        plot.background = element_rect(fill = "transparent", colour = NA),
-        panel.border = element_blank(),
-        plot.margin = unit(c(0, 0, 0, 0), "null"),
-        axis.text = element_blank(),
-        axis.line = element_blank(),
-        axis.line.x = element_line(color = "black", size = 1),
-        axis.text.x = element_text(color = "black", size = 10),
-        legend.position = "none"
-      )
-  })
-
-  output$cum_praias <- renderPlot({
-    distinct_counts <- data() %>%
-      count(Nome.da.praia..Concello, Concello, Data.Norm)
-
-    summarized_data <- distinct_counts %>%
-      group_by(Data.Norm) %>%
-      summarize(sum_n = sum(n))
-
-    ggplot(summarized_data, aes(x = Data.Norm, y = sum_n)) +
-      geom_area(fill = "#136f6f", alpha = 0.15) +
-      geom_line(linewidth = 1, lineend = "round", linejoin = "mitre", colour = "#136f6f") +
-      labs(x = "Data", y = "Número de Actualizacións") +
-      theme_minimal(base_size = 13) +
-      theme(plot.background = element_rect(fill = "transparent", colour = NA))
-  })
-
-
-
+  # Evolución por tipo de residuo — últimos 3 meses
   output$cum_residuos <- renderPlot({
-    distinct_counts <- data() %>%
-      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes")) %>%
-      count(Residuo, Data.Norm)
-
-    # Group by both Data.Norm and Residuo to calculate sums per Residuo type
-    summarized_data <- distinct_counts %>%
+    d <- fulldata() %>%
+      filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% residuo_tipos,
+             Data.Norm >= ref_date() - 90) %>%
+      count(Residuo, Data.Norm) %>%
       group_by(Data.Norm, Residuo) %>%
-      summarize(sum_n = sum(n), .groups = 'drop')
-
-    # Plot each Residuo as a separate line
-    ggplot(summarized_data, aes(x = Data.Norm, y = sum_n, color = Residuo, group = Residuo)) +
+      summarize(sum_n = sum(n), .groups = "drop")
+    ggplot(d, aes(x = Data.Norm, y = sum_n, color = Residuo, group = Residuo)) +
       geom_line(linewidth = 1, lineend = "round", linejoin = "mitre") +
       scale_color_manual(values = c("Pellets" = "#d6342a", "Biosoportes" = "#e8920c", "Chapapote" = "#6b3fa0")) +
-      labs(x = "Data", y = "Número de Actualizacións", color = "Residuo") +
+      labs(x = NULL, y = "Actualizacións", color = NULL) +
       theme_minimal(base_size = 13) +
       theme(legend.position = "bottom",
             plot.background = element_rect(fill = "transparent", colour = NA))
+  })
+
+  # Actualizacións recibidas por día — histórico completo
+  output$cum_praias <- renderPlot({
+    d <- fulldata() %>%
+      count(Nome.da.praia..Concello, Concello, Data.Norm) %>%
+      group_by(Data.Norm) %>%
+      summarize(sum_n = sum(n), .groups = "drop")
+    ggplot(d, aes(x = Data.Norm, y = sum_n)) +
+      geom_area(fill = "#136f6f", alpha = 0.15) +
+      geom_line(linewidth = 1, lineend = "round", linejoin = "mitre", colour = "#136f6f") +
+      labs(x = NULL, y = "Actualizacións") +
+      theme_minimal(base_size = 13) +
+      theme(plot.background = element_rect(fill = "transparent", colour = NA))
   })
 
   ###### RENDER MAP ################
