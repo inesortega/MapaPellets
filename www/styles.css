@@ -120,9 +120,12 @@ body{ border-top:3px solid #136f6f; }
 .sidebar .shiny-date-range-input input:focus{
   border-color:#136f6f !important; box-shadow:0 0 0 2px rgba(19,111,111,.15) !important; outline:0; }
 
-/* footer sempre ao fondo (non colapsa cara arriba en pestanas curtas) */
+/* footer sempre ao fondo (non colapsa cara arriba en pestanas curtas).
+   O footer é fillo directo de <main class="bslib-page-main">, así que é main
+   quen ten que ser columna flex e encher o alto; o footer empúrrase co auto. */
 body.bslib-page-navbar{ display:flex; flex-direction:column; min-height:100vh; }
-body.bslib-page-navbar > .app-footer{ margin-top:auto; }
+main.bslib-page-main{ display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
+main.bslib-page-main > .app-footer{ margin-top:auto; }
 
 /* lenda do mapa (leaflet addLegend) — tarxeta ao estilo do mockup */
 .leaflet-control.legend, .leaflet .info.legend{

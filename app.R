@@ -79,9 +79,7 @@ filters <- sidebar(
     )
   ),
   selectInput(inputId = "select_provincia", label = "Provincia", multiple = TRUE, choices = c(), selected = ""),
-  selectInput(inputId = "select_concello", label = "Concello", multiple = TRUE, choices = c(), selected = ""),
-  hr(),
-  uiOutput("sidebarContent")
+  selectInput(inputId = "select_concello", label = "Concello", multiple = TRUE, choices = c(), selected = "")
 )
 
 # ---- Tarxeta KPI auxiliar ---------------------------------------------------
@@ -184,14 +182,7 @@ ui <- page_navbar(
 
 server <- function(input, output, session) {
 
-  updateTimestamp <- reactiveValues(time = Sys.time())
-  last_run_time <- reactiveValues(time = Sys.time())
   isFirstRun <- reactiveVal(TRUE)
-
-
-  ########### REACTIVE ELEMENTS ##############
-  # Create a reactiveValu object to store the clicked marker information
-  clickedMarker <- reactiveVal(NULL)
 
   data <- reactive({
     invalidateLater(350000)
@@ -259,99 +250,6 @@ server <- function(input, output, session) {
     filtered_data <- filtered_data %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% input$legendFilter)
 
     filtered_data
-  })
-
-  # Update data and sidebar when date filter is changed
-  observeEvent(input$dateRange, {
-    # Check if the clicked marker is still valid based on the filtered data
-    if (!is.null(clickedMarker())){
-      if(nrow(subset(data(), id == clickedMarker()$id)) == 0){
-        # not valid
-        clickedMarker(NULL)
-        output$sidebarContent <- NULL
-      }
-    }
-  })
-
-  # Update the clicked marker information when a marker is clicked
-  observeEvent(input$mymap_marker_click, {
-    marker_info <- input$mymap_marker_click
-    clickedMarker(marker_info)
-  })
-
-  # Update sidebar content if valid marker is clicked
-  observe({
-    if(!is.null(clickedMarker())){
-      marker_id <- clickedMarker()$id
-      info <- data() %>%
-        filter(id == clickedMarker()$id)
-      #### add content to sidebar
-      if(nrow(info) > 0){
-        tipo <- info$Tipo.de.actualización.que.nos.queres.facer.chegar
-        if(!(tipo %in% c("Convocatoria de xornada de limpeza", "Outras Convocatorias"))){
-
-          links <- c()
-
-          if(tipo  %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes")){
-            if(!is.na(info$Imaxe.dos.residuos.no.lugar.ou.da.xornada.de.limpeza)){
-              links <- sapply(info$Imaxe.dos.residuos.no.lugar.ou.da.xornada.de.limpeza, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
-            }
-          }
-          else if(tipo %in% c("Non hai pellets", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")){
-            if(!is.na(info$Imaxes.adicionais)){
-              links <- sapply(info$Imaxes.adicionais, function(x) strsplit(x, ", "), USE.NAMES=FALSE)[[1]]
-            }
-          }
-
-          output$sidebarContent <- renderUI({
-            sidebar <- fluidRow(
-              column(12, HTML(paste(
-                "<br><strong>Praia: </strong>", htmlEscape(info$Nome.da.praia..Concello), "<br>",
-                "<strong>Data da limpeza: </strong>", htmlEscape(info$Marca.temporal), "<br>",
-                "<strong>Concello: </strong>", htmlEscape(info$Concello), "<br>",
-                "<strong>Información adicional: </strong><div>", htmlEscape(info$Información.adicional), "</div><br>"
-              ))),
-              column(12, h5("Imaxes dispoñibles:")),
-              column(12, HTML(paste(
-                lapply(1:length(links), function(i) {
-                  if(!is.null(links[i])){
-                    HTML(paste(
-                      "<a href='", htmlEscape(url_encode_vector(links[i])), "' target='_blank'>Imaxe ", i, "</a><br>"
-                    ))
-                  }else{
-                    paste("")
-                  }
-                }),
-                collapse = ""
-              ))),
-              if (!is.null(updateTimestamp$time)) {
-                column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
-              }
-            )
-            return(sidebar)
-          })
-        }
-        else{
-          output$sidebarContent <- renderUI({
-            sidebar <- fluidRow(
-              column(12, HTML(paste(
-                "<br><strong>Tipo: </strong>", htmlEscape(info$Tipo.de.actualización.que.nos.queres.facer.chegar), "<br>",
-                "<strong>Data e hora: </strong>", htmlEscape(info$Data.da.Convocatoria), " ", htmlEscape(info$Hora), "<br>",
-                "<strong>Quen organiza a iniciativa: </strong>", htmlEscape(info$Quen.organiza.a.iniciativa), "<br>",
-                "<strong>Contacto: </strong>", htmlEscape(info$Contacto), "<br>",
-                tags$a("Cartaz", href = htmlEscape(url_encode_vector(info$Cartaz))), "<br>",
-                tags$a("Ligazón", href = htmlEscape(url_encode_vector(info$Ligazón))), "<br>"))),
-              if (!is.null(updateTimestamp$time)) {
-                column(12, h5(paste("Última  Actualización: ", updateTimestamp$time)))
-              }
-            )
-            return(sidebar)
-          })
-
-        }
-      }
-
-    }
   })
 
   ###### RENDER Statisticsc ################
