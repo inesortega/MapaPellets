@@ -1,0 +1,165 @@
+/* MapaPellets — identidade visual (inesortega.github.io) */
+:root{
+  --c-residuos:#d6342a; --c-limpa:#2f9e44; --c-convocatoria:#e8920c; --c-evento:#6b3fa0;
+  --muted:#4f5f5e; --faint:#7c8c8b; --border-light:#dcebeb;
+}
+
+/* franxa superior teal, sinatura da web persoal */
+body{ border-top:3px solid #136f6f; }
+
+/* barra de navegación */
+.navbar{ background:#e6f0f0 !important; border-bottom:1px solid #c5dada;
+  padding-top:.2rem !important; padding-bottom:.2rem !important; --bs-navbar-padding-y:.2rem; }
+.navbar .brand-title{ font-weight:680; letter-spacing:-.01em; font-size:1.05rem; }
+/* pestanas como pills teal con icona (estilo mockup) */
+.navbar .nav-underline{ --bs-nav-underline-border-width:0; }
+/* centrar verticalmente as pestanas no banner */
+.navbar .navbar-collapse, .navbar .navbar-nav{ align-items:center; }
+.navbar .nav-link{ display:inline-flex; align-items:center; gap:7px;
+  font-weight:560; font-size:.82rem; line-height:1.2; color:var(--muted);
+  border:0 !important; border-radius:7px; padding:.22rem .7rem; margin:0 1px; }
+.navbar .nav-link:hover{ background:#dceaea; color:#11201f; }
+.navbar .nav-link.active{ background:#136f6f !important; color:#fff !important; }
+.navbar .nav-ico{ width:15px; height:15px; flex:none; }
+.nav-badge{ font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+  background:var(--c-limpa); color:#fff; padding:1px 6px; border-radius:99px; line-height:1.45; }
+.navbar .nav-link.active .nav-badge{ background:rgba(255,255,255,.25); }
+
+/* textos introdutorios */
+.intro{ margin:.25rem 0 .75rem; }
+.intro h4, .lead h4{ font-weight:680; letter-spacing:-.01em; }
+.intro p, .lead p{ color:var(--muted); max-width:72ch; }
+
+/* mapa */
+.map-card{ padding:0; overflow:hidden; }
+.map-card .leaflet-container{ border-radius:12px; background:#e3f0f1; }
+
+/* tarxetas KPI */
+.stats-wrap{ display:flex; flex-direction:column; gap:1rem; padding-top:.25rem; }
+.kpi-card{ background:#fff; color:#11201f; border:1px solid var(--border-light);
+  border-left:4px solid #136f6f;
+  box-shadow:0 1px 2px rgba(17,32,31,.04), 0 6px 20px rgba(17,32,31,.06); }
+.kpi-card.kpi-danger{ border-left-color:var(--c-residuos); }
+.kpi-card.kpi-success{ border-left-color:var(--c-limpa); }
+.kpi-card.kpi-warning{ border-left-color:var(--c-convocatoria); }
+.kpi-card .value-box-value{ font-size:2.2rem; font-weight:680; font-variant-numeric:tabular-nums;
+  line-height:1; color:#11201f; }
+.kpi-title{ display:flex; flex-direction:column; gap:1px;
+  font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+.kpi-sub{ font-weight:500; letter-spacing:0; text-transform:none; color:var(--faint); font-size:.7rem; }
+
+/* tarxetas de gráficas */
+.card-header{ font-weight:620; font-size:.95rem; }
+
+/* indicador "en directo" */
+.live-pill{ display:inline-flex; align-items:center; gap:7px; font-size:.78rem; color:var(--muted);
+  background:#fff; border:1px solid var(--border-light); padding:5px 11px; border-radius:99px; }
+.live-dot{ width:8px; height:8px; border-radius:50%; background:var(--c-limpa); }
+@media (prefers-reduced-motion: no-preference){
+  .live-dot{ animation:livepulse 2s ease-out infinite; }
+  @keyframes livepulse{ 0%{box-shadow:0 0 0 0 rgba(47,158,68,.5)} 100%{box-shadow:0 0 0 8px rgba(47,158,68,0)} }
+}
+
+/* pé de páxina */
+.app-footer{ text-align:center; padding:12px; color:var(--muted); font-size:.8rem;
+  border-top:1px solid var(--border-light); }
+
+/* agradecementos */
+.ack{ max-width:72ch; color:#11201f; line-height:1.6; }
+
+/* logotipo + título e subtítulo na cabeceira */
+.navbar .navbar-brand{ padding-top:.2rem; padding-bottom:.2rem; }
+.navbar .brand{ display:inline-flex; align-items:center; gap:11px; }
+.brand-mark{ width:36px; height:36px; border-radius:10px; flex:none; display:inline-grid; place-items:center;
+  background:linear-gradient(150deg,#136f6f,#0e5757); box-shadow:0 1px 2px rgba(17,32,31,.15); }
+.brand-mark svg{ display:block; }
+.brand-text{ display:flex; flex-direction:column; line-height:1.12; }
+.brand-title{ font-weight:680; letter-spacing:-.01em; font-size:1.05rem; color:#11201f; }
+.brand-sub{ font-size:.72rem; font-weight:400; color:var(--muted); }
+
+/* panel de filtros */
+.bslib-sidebar-layout > .sidebar, .sidebar > .sidebar-content{ background:#fff; }
+.sidebar .control-label,
+.sidebar .shiny-input-container > label,
+.sidebar .shiny-input-container .control-label{
+  font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--faint); margin-bottom:.45rem;
+}
+
+/* chips do tipo de actualización (checkboxGroupButtons #legendFilter, btn-check de BS5) */
+#legendFilter .btn-group-container-sw{ display:flex; flex-wrap:wrap; gap:6px; }
+#legendFilter .btn{
+  border:1px solid #c5dada !important; background:#fff !important; color:#11201f !important;
+  border-radius:99px !important; font-weight:540; font-size:.78rem; padding:5px 11px;
+  box-shadow:none !important; margin:0 !important;
+}
+/* marcado -> destacado */
+#legendFilter .btn-check:checked + .btn{
+  opacity:1; background:#fff !important; border-color:#136f6f !important; color:#11201f !important;
+}
+/* non marcado -> atenuado */
+#legendFilter .btn-check:not(:checked) + .btn{
+  opacity:.4; background:#eef5f5 !important; border-color:#dcebeb !important; color:#7c8c8b !important;
+}
+#legendFilter .btn-check:focus-visible + .btn{ outline:2px solid #136f6f; outline-offset:2px; }
+#legendFilter .sw{ display:inline-block; width:9px; height:9px; border-radius:50%;
+  margin-right:7px; vertical-align:middle; }
+
+/* selects máis limpos */
+.sidebar .selectize-input, .sidebar .form-control{ border-color:#c5dada; border-radius:8px; }
+
+/* rango de datas en dúas chips compactas que collen no panel */
+.sidebar .shiny-date-range-input .input-daterange{ display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
+.sidebar .shiny-date-range-input .input-daterange input{
+  border:1px solid #c5dada !important; border-radius:8px !important; background:#fff;
+  font-variant-numeric:tabular-nums; text-align:center; min-width:0; width:100%;
+  font-size:.82rem; padding:.35rem .4rem; }
+.sidebar .shiny-date-range-input .input-group-addon,
+.sidebar .shiny-date-range-input .input-group-text{
+  border:0 !important; background:transparent !important; color:var(--faint); padding:0 2px; flex:0 0 auto; }
+.sidebar .shiny-date-range-input input:focus{
+  border-color:#136f6f !important; box-shadow:0 0 0 2px rgba(19,111,111,.15) !important; outline:0; }
+
+/* footer sempre ao fondo (non colapsa cara arriba en pestanas curtas).
+   O footer é fillo directo de <main class="bslib-page-main">, así que é main
+   quen ten que ser columna flex e encher o alto; o footer empúrrase co auto. */
+body.bslib-page-navbar{ display:flex; flex-direction:column; min-height:100vh; }
+main.bslib-page-main{ display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
+main.bslib-page-main > .app-footer{ margin-top:auto; }
+
+/* lenda do mapa (leaflet addLegend) — tarxeta ao estilo do mockup */
+.leaflet-control.legend, .leaflet .info.legend{
+  background:#fff !important; border:1px solid #dcebeb !important; border-radius:12px !important;
+  box-shadow:0 1px 2px rgba(17,32,31,.05), 0 6px 20px rgba(17,32,31,.08) !important;
+  padding:12px 14px !important; color:#11201f !important; line-height:1.7 !important; font-size:.81rem;
+}
+.leaflet-control.legend i{
+  width:11px !important; height:11px !important; border-radius:50% !important;
+  margin-right:8px !important; margin-top:4px !important; opacity:1 !important; border:0 !important;
+}
+.leaflet-control.legend strong{
+  display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:.07em;
+  font-size:.7rem; color:#7c8c8b; font-weight:700;
+}
+
+/* popup do mapa ao estilo do mockup */
+.leaflet-popup-content-wrapper{ border-radius:12px !important; padding:0 !important;
+  border:1px solid var(--border-light);
+  box-shadow:0 4px 24px rgba(17,32,31,.18) !important; }
+.leaflet-popup-content{ margin:0 !important; width:270px !important;
+  max-height:340px; overflow-y:auto; line-height:1.45; }
+.leaflet-popup-close-button{ top:8px !important; right:8px !important; color:#7c8c8b !important; }
+.pc{ color:#11201f; }
+.pc-state{ display:inline-flex; align-items:center; gap:6px; margin:14px 15px 0;
+  font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--pc,#136f6f); }
+.pc-state::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--pc,#136f6f); }
+.pc-title{ margin:7px 15px 0; font-size:1rem; font-weight:660; line-height:1.2; }
+.pc-sub{ margin:1px 15px 12px; font-size:.78rem; color:var(--muted); }
+.pc-dl{ margin:0; padding:11px 15px; border-top:1px solid var(--border-light);
+  display:grid; grid-template-columns:auto 1fr; gap:6px 12px; font-size:.79rem; }
+.pc-row{ display:contents; }
+.pc-row dt{ color:var(--faint); font-weight:500; }
+.pc-row dd{ margin:0; text-align:right; font-weight:400; word-break:break-word; }
+.pc-foot{ padding:10px 15px; border-top:1px solid var(--border-light); display:flex; flex-wrap:wrap; gap:14px; }
+.pc-foot a{ font-weight:580; font-size:.82rem; color:#136f6f; }
+.pc-imgs-label{ color:var(--faint); font-weight:500; font-size:.82rem; }
