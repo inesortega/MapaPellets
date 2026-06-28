@@ -26,18 +26,24 @@ app_theme <- bs_theme(
   danger  = "#d6342a",
   base_font = font_collection("Inter", "system-ui", "-apple-system",
                               "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"),
-  "border-color" = "#dcebeb"
+  "border-color" = "#dcebeb",
+  "font-size-base" = "0.9rem"   # texto base ~14px, como o mockup
 )
 
 # ---- Panel lateral de filtros (mesmos inputId que a versión orixinal) -------
 filters <- sidebar(
-  width = 340,
-  sliderInput(
+  width = 330,
+  dateRangeInput(
     inputId = "dateRange",
     label = "Filtrado por data",
+    start = Sys.Date() - 30,
+    end = Sys.Date() + 1,
     min = as.Date("2024-01-01"),
     max = Sys.Date() + 2,
-    value = c(Sys.Date() - 30, Sys.Date() + 1)
+    separator = " — ",
+    format = "yyyy-mm-dd",
+    language = "es",
+    weekstart = 1
   ),
   checkboxGroupButtons(
     inputId = "legendFilter",
@@ -91,8 +97,11 @@ kpi_box <- function(outputId, title, subtitle = NULL, accent = "primary") {
 # ---- UI ---------------------------------------------------------------------
 ui <- page_navbar(
   title = tags$span(class = "brand",
-    tags$span(class = "brand-mark", HTML('<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M2 15c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2" stroke="#cfeeee" stroke-width="1.7" stroke-linecap="round"/><path d="M2 19c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round"/><circle cx="17" cy="7.5" r="2.4" fill="#ffffff"/></svg>')),
-    tags$span(class = "brand-title", "Unha Vez Máis")
+    tags$span(class = "brand-mark", HTML('<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 15c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2" stroke="#cfeeee" stroke-width="1.7" stroke-linecap="round"/><path d="M2 19c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round"/><circle cx="17" cy="7.5" r="2.4" fill="#ffffff"/></svg>')),
+    tags$span(class = "brand-text",
+      tags$span(class = "brand-title", "Unha Vez Máis"),
+      tags$span(class = "brand-sub", "Monitorización cidadá das praias de Galicia")
+    )
   ),
   id = "sidebarID",            # conserva input$sidebarID (== "map") que usa o server
   theme = app_theme,
@@ -104,24 +113,23 @@ ui <- page_navbar(
   ),
 
   nav_panel(
-    title = "Mapa en tempo real",
-    value = "map",
-    div(class = "intro",
-        h4("Mapa en tempo real da situación das praias galegas"),
-        p("O mapa reflicte as actualizacións do estado das praias enviadas polo voluntariado. ",
-          "Atoparás información estatística na pestana «Datos e estatísticas»."),
-        p("Emprega o panel lateral para filtrar a información por tipo de vertido, concello, ",
-          "provincia ou data de actualización. Por defecto amósase a última semana.")
+    title = tagList(
+      HTML('<svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="10" r="2.4" stroke="currentColor" stroke-width="1.8"/></svg>'),
+      "Mapa en tempo real"
     ),
+    value = "map",
     card(
       full_screen = TRUE,
       class = "map-card",
-      leafletOutput("mymap", height = "calc(100vh - 250px)")
+      leafletOutput("mymap", height = "calc(100vh - 140px)")
     )
   ),
 
   nav_panel(
-    title = "Datos e estatísticas",
+    title = tagList(
+      HTML('<svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 19V5m0 14h16M8 16v-5m4 5V8m4 8v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'),
+      "Datos e estatísticas"
+    ),
     div(class = "stats-wrap",
       div(class = "lead",
         h4("Datos e estatísticas"),
@@ -156,7 +164,10 @@ ui <- page_navbar(
   ),
 
   nav_panel(
-    title = "Agradecementos",
+    title = tagList(
+      HTML('<svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>'),
+      "Agradecementos"
+    ),
     div(class = "ack",
         HTML(paste("Este proxecto é posible grazas á colaboración e recollida de datos de voluntarias; de Ana e Miguel das Chas; das voluntarias de Noia Limpa; e á cesión de recursos por parte de ", "<a href='https://gradiant.org' target='_blank'>Gradiant</a>"))
     )
@@ -213,7 +224,14 @@ server <- function(input, output, session) {
     # Filter data based on selected date range
     max <- max(as.Date(all_data$Data.Norm))
     min <- min(as.Date(all_data$Data.Norm))
-    updateSliderInput(session, inputId = "dateRange", min=min, max=max)
+    if (isFirstRun()) {
+      # Por defecto: último mes con datos dispoñibles
+      updateDateRangeInput(session, inputId = "dateRange",
+                           start = max - 30, end = max, min = min, max = max)
+      isFirstRun(FALSE)
+    } else {
+      updateDateRangeInput(session, inputId = "dateRange", min = min, max = max)
+    }
 
     if (!is.null(input$dateRange)) {
       start_date <- input$dateRange[1]
@@ -514,19 +532,21 @@ server <- function(input, output, session) {
               layerId = ~id,
               radius = 10,
               color = "#e31a1c",
-              popup = ~paste(
-                paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
-                paste("<strong>Tipo de residuo: </strong>", htmlEscape(Residuo), "<br>"),
-                paste("<strong>Data da actualización: </strong>", htmlEscape(Marca.temporal), "<br>"),
-                paste("<strong>Está avisado o 112?</strong>", htmlEscape(Está.avisado.o.112.), "<br>"),
-                paste("<strong>Hai animais mortos</strong>", htmlEscape(Atopaches.animáis.mortos.), "<br>"),
-                paste("<strong>Por onde están espallados os residuos: </strong>", htmlEscape(Por.onde.están.espallados.os.residuos), "<br>"),
-                paste("<strong>Quen está recollendo os residuos?</strong>", htmlEscape(Quen.está.recollendo.os.residuos.), "<br>"),
-                paste("<strong>Como se están a recoller?</strong>", htmlEscape(Como.se.están.a.recoller.os.residuos.), "<br>"),
-                paste("<strong>Onde se depositan?</strong>", htmlEscape(Onde.se.depositan.os.residuos.), "<br>"),
-                paste("<strong>Hai sacos de pellets ou outro tipo de residuos?</strong>", htmlEscape(Hai.sacos.de.pellets.ou.outro.tipo.de.residuos.), "<br>"),
-                paste("<strong>Cantidade de residuos: </strong>", htmlEscape(Cantidade.de.residuos), "<br>"),
-                paste("<strong>Concello: </strong>", htmlEscape(Concello), "<br>")
+              popup = ~ popup_card(
+                state = "Hai residuos na praia", accent = "#d6342a",
+                title = Nome.da.praia..Concello, subtitle = Concello,
+                fields = list(
+                  "Tipo de residuo"  = Residuo,
+                  "Data"             = Marca.temporal,
+                  "Avisado o 112"    = Está.avisado.o.112.,
+                  "Animais mortos"   = Atopaches.animáis.mortos.,
+                  "Espallados por"   = Por.onde.están.espallados.os.residuos,
+                  "Recollendo"       = Quen.está.recollendo.os.residuos.,
+                  "Como recoller"    = Como.se.están.a.recoller.os.residuos.,
+                  "Onde depositan"   = Onde.se.depositan.os.residuos.,
+                  "Sacos"            = Hai.sacos.de.pellets.ou.outro.tipo.de.residuos.,
+                  "Cantidade"        = Cantidade.de.residuos
+                )
               ),
               stroke = FALSE, fillOpacity = 0.5
             )
@@ -542,12 +562,16 @@ server <- function(input, output, session) {
               layerId = ~id,
               radius = 10,
               color = "#F5A618",
-              popup = ~paste(
-                paste("<strong>Data da convocatoria: </strong>", htmlEscape(as.Date(Data.da.Convocatoria)), " ", htmlEscape(Hora), "<br>"),
-                paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
-                paste("<strong>Lugar de encontro: </strong>", htmlEscape(Lugar.de.encontro), "<br>"),
-                paste("<strong>Quen organiza a iniciativa? </strong>", htmlEscape(Quen.organiza.a.iniciativa), "<br>"),
-                paste(tags$a("Ligazón", href = htmlEscape(Ligazón)), "<br>")
+              popup = ~ popup_card(
+                state = "Convocatoria de limpeza", accent = "#e8920c",
+                title = Nome.da.praia..Concello, subtitle = Concello,
+                fields = list(
+                  "Data e hora"       = paste(as.Date(Data.da.Convocatoria), Hora),
+                  "Lugar de encontro" = Lugar.de.encontro,
+                  "Organiza"          = Quen.organiza.a.iniciativa
+                ),
+                foot = ifelse(is.na(Ligazón) | Ligazón == "", "",
+                              paste0("<a href='", htmlEscape(Ligazón), "' target='_blank'>Ligazón →</a>"))
               ),
               stroke = FALSE, fillOpacity = 0.5
             )
@@ -562,12 +586,20 @@ server <- function(input, output, session) {
               layerId = ~id,
               radius = 10,
               color = "#490a73",
-              popup = ~paste(
-                paste("<strong>Data da convocatoria: </strong>", htmlEscape(as.Date(Data.da.Convocatoria)), " ", htmlEscape(Hora), "<br>"),
-                paste("<strong>Lugar de encontro: </strong>", htmlEscape(Lugar.de.encontro), "<br>"),
-                paste("<strong>Quen organiza a iniciativa? </strong>", htmlEscape(Quen.organiza.a.iniciativa), "<br>"),
-                paste(tags$a("Ligazón", href = htmlEscape(Ligazón)), "<br>"),
-                paste(tags$a("Cartaz", href = htmlEscape(Cartaz)), "<br>")
+              popup = ~ popup_card(
+                state = "Outras convocatorias", accent = "#6b3fa0",
+                title = Nome.da.praia..Concello, subtitle = Concello,
+                fields = list(
+                  "Data e hora"       = paste(as.Date(Data.da.Convocatoria), Hora),
+                  "Lugar de encontro" = Lugar.de.encontro,
+                  "Organiza"          = Quen.organiza.a.iniciativa
+                ),
+                foot = paste0(
+                  ifelse(is.na(Ligazón) | Ligazón == "", "",
+                         paste0("<a href='", htmlEscape(Ligazón), "' target='_blank'>Ligazón →</a> ")),
+                  ifelse(is.na(Cartaz) | Cartaz == "", "",
+                         paste0("<a href='", htmlEscape(Cartaz), "' target='_blank'>Cartaz →</a>"))
+                )
               ),
               stroke = FALSE, fillOpacity = 0.5
             )
@@ -581,19 +613,16 @@ server <- function(input, output, session) {
               label = ~paste(Tipo.de.actualización.que.nos.queres.facer.chegar, " - ", Nome.da.praia..Concello),
               layerId = ~id,
               radius = 10,
-              popup = ~paste(
-                paste("<strong>Praia: </strong>", htmlEscape(Nome.da.praia..Concello), "<br>"),
-                paste("<strong>Estado da praia: </strong>", htmlEscape(Tipo.de.actualización.que.nos.queres.facer.chegar), "<br>"),
-                paste("<strong>Data da actualización: </strong>", htmlEscape(Marca.temporal), "<br>"),
-                paste("<strong>Está avisado o 112?</strong>", htmlEscape(Está.avisado.o.112.), "<br>"),
-                paste("<strong>Hai animais mortos</strong>", htmlEscape(Atopaches.animáis.mortos.), "<br>"),
-                paste("<strong>Por onde están espallados os residuos: </strong>", htmlEscape(Por.onde.están.espallados.os.residuos), "<br>"),
-                paste("<strong>Quen está recollendo os residuos?</strong>", htmlEscape(Quen.está.recollendo.os.residuos.), "<br>"),
-                paste("<strong>Como se están a recoller?</strong>", htmlEscape(Como.se.están.a.recoller.os.residuos.), "<br>"),
-                paste("<strong>Onde se depositan?</strong>", htmlEscape(Onde.se.depositan.os.residuos.), "<br>"),
-                paste("<strong>Hai sacos de pellets ou outro tipo de residuos?</strong>", htmlEscape(Hai.sacos.de.pellets.ou.outro.tipo.de.residuos.), "<br>"),
-                paste("<strong>Cantidade de residuos: </strong>", htmlEscape(Cantidade.de.residuos), "<br>"),
-                paste("<strong>Concello: </strong>", htmlEscape(Concello), "<br>")
+              popup = ~ popup_card(
+                state = "Praia limpa / sen residuos", accent = "#2f9e44",
+                title = Nome.da.praia..Concello, subtitle = Concello,
+                fields = list(
+                  "Estado"         = Tipo.de.actualización.que.nos.queres.facer.chegar,
+                  "Data"           = Marca.temporal,
+                  "Avisado o 112"  = Está.avisado.o.112.,
+                  "Animais mortos" = Atopaches.animáis.mortos.,
+                  "Cantidade"      = Cantidade.de.residuos
+                )
               ),
               color = "#33a02c",
               stroke = FALSE, fillOpacity = 0.5
@@ -609,6 +638,28 @@ server <- function(input, output, session) {
         addPopups(lng = -8.1, lat = 42.5, popup = "Non hai datos para mostrar con estes filtros.")
     }
   })
+}
+
+# Tarxeta de popup do mapa ao estilo do mockup (vectorizada para leaflet).
+# 'fields' = lista nomeada de vectores (etiqueta -> valor); 'foot' = HTML opcional.
+popup_card <- function(state, accent, title, subtitle, fields = list(), foot = NULL) {
+  rows <- ""
+  for (lab in names(fields)) {
+    v <- as.character(fields[[lab]])
+    v <- ifelse(is.na(v) | v == "" | v == "NA", "—", htmlEscape(v))
+    rows <- paste0(rows, "<div class='pc-row'><dt>", htmlEscape(lab), "</dt><dd>", v, "</dd></div>")
+  }
+  foot_html <- if (is.null(foot)) "" else
+    ifelse(foot == "", "", paste0("<div class='pc-foot'>", foot, "</div>"))
+  paste0(
+    "<div class='pc' style='--pc:", accent, "'>",
+      "<span class='pc-state'>", htmlEscape(state), "</span>",
+      "<div class='pc-title'>", htmlEscape(title), "</div>",
+      "<div class='pc-sub'>", htmlEscape(subtitle), "</div>",
+      "<dl class='pc-dl'>", rows, "</dl>",
+      foot_html,
+    "</div>"
+  )
 }
 
 # Formatea o valor dunha tarxeta KPI (admite un número ou un tibble de count)

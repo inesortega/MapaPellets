@@ -13,3 +13,4 @@ token-*.json
 # Artefactos de build de Docker
 *.tar
 *.tar.gz
+.positai
