@@ -525,7 +525,7 @@ server <- function(input, output, session) {
         if ((selected_filter %in% c("Hai pellets na praia", "Hai biosoportes", "Hai chapapote")) & nrow(data_hai_pellets()) > 0) {
           proxy_map %>%
             addCircleMarkers(
-              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes")),
+              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Hai pellets na praia", "Hai chapapote", "Hai biosoportes")) %>% filter(is.finite(lon), is.finite(lat)),
               lng = ~lon,
               lat = ~lat,
               label = ~paste(Residuo, " - ", Nome.da.praia..Concello),
@@ -546,7 +546,8 @@ server <- function(input, output, session) {
                   "Onde depositan"   = Onde.se.depositan.os.residuos.,
                   "Sacos"            = Hai.sacos.de.pellets.ou.outro.tipo.de.residuos.,
                   "Cantidade"        = Cantidade.de.residuos
-                )
+                ),
+                foot = img_links(Imaxe.dos.residuos.no.lugar.ou.da.xornada.de.limpeza)
               ),
               stroke = FALSE, fillOpacity = 0.5
             )
@@ -555,7 +556,7 @@ server <- function(input, output, session) {
         else if (selected_filter == "Convocatoria de xornada de limpeza" & nrow(data_convocatoria()) > 0) {
           proxy_map %>%
             addCircleMarkers(
-              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Convocatoria de xornada de limpeza"),
+              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Convocatoria de xornada de limpeza") %>% filter(is.finite(lon), is.finite(lat)),
               lng = ~lon,
               lat = ~lat,
               label = ~Nome.da.praia..Concello,
@@ -579,7 +580,7 @@ server <- function(input, output, session) {
         else if (selected_filter == "Outras Convocatorias" & nrow(data_evento()) > 0) {
           proxy_map %>%
             addCircleMarkers(
-              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Outras Convocatorias"),
+              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar == "Outras Convocatorias") %>% filter(is.finite(lon), is.finite(lat)),
               lng = ~lon,
               lat = ~lat,
               label = ~Nome.da.praia..Concello,
@@ -607,7 +608,7 @@ server <- function(input, output, session) {
         else if (selected_filter %in% c("Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)") & nrow(data_xa_non_hai()) > 0) {
           proxy_map %>%
             addCircleMarkers(
-              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")),
+              data = data() %>% filter(Tipo.de.actualización.que.nos.queres.facer.chegar %in% c("Non hai pellets na praia", "A praia está limpa", "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")) %>% filter(is.finite(lon), is.finite(lat)),
               lng = ~lon,
               lat = ~lat,
               label = ~paste(Tipo.de.actualización.que.nos.queres.facer.chegar, " - ", Nome.da.praia..Concello),
@@ -622,7 +623,8 @@ server <- function(input, output, session) {
                   "Avisado o 112"  = Está.avisado.o.112.,
                   "Animais mortos" = Atopaches.animáis.mortos.,
                   "Cantidade"      = Cantidade.de.residuos
-                )
+                ),
+                foot = img_links(Imaxes.adicionais)
               ),
               color = "#33a02c",
               stroke = FALSE, fillOpacity = 0.5
@@ -638,6 +640,22 @@ server <- function(input, output, session) {
         addPopups(lng = -8.1, lat = 42.5, popup = "Non hai datos para mostrar con estes filtros.")
     }
   })
+}
+
+# Constrúe os enlaces ás imaxes (campo cunha lista de URLs separadas por comas).
+# Vectorizado: devolve un vector de HTML, un por fila.
+img_links <- function(x) {
+  vapply(as.character(x), function(s) {
+    if (is.na(s) || !nzchar(s)) return("")
+    urls <- trimws(strsplit(s, ",\\s*")[[1]])
+    urls <- urls[nzchar(urls)]
+    if (!length(urls)) return("")
+    enc <- vapply(urls, function(u) utils::URLencode(u), character(1), USE.NAMES = FALSE)
+    paste0("<span class='pc-imgs-label'>Imaxes:</span> ",
+           paste(paste0("<a href='", htmlEscape(enc),
+                        "' target='_blank'>", seq_along(urls), "</a>"),
+                 collapse = " · "))
+  }, character(1), USE.NAMES = FALSE)
 }
 
 # Tarxeta de popup do mapa ao estilo do mockup (vectorizada para leaflet).
