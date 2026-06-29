@@ -140,6 +140,7 @@ ui <- page_navbar(
           "e poden conter erros polo reporte non estandarizado do nome da praia."))
         )
       ),
+      uiOutput("week_note"),
       layout_columns(
         col_widths = c(3, 3, 3, 3),
         kpi_box("n_concellos", "Concellos", "con actualizacións", trendId = "n_concellos_trend"),
@@ -274,15 +275,37 @@ server <- function(input, output, session) {
                      "Xa non hai (a praia quedaba limpa cando se encheu o formulario)")
   evento_tipos  <- c("Convocatoria de xornada de limpeza", "Outras Convocatorias")
 
-  # Data de referencia = última con datos (en produción ≈ hoxe). As xanelas
-  # (semana, 3 meses) áncoranse a ela para que sempre amosen actividade recente.
+  # Data de referencia = última con datos (en produción ≈ hoxe). As gráficas
+  # (3 meses) áncoranse a ela para que sempre amosen actividade recente.
   ref_date <- reactive({
     d <- fulldata()
     if (is.null(d) || !nrow(d)) Sys.Date() else max(d$Data.Norm, na.rm = TRUE)
   })
-  last_week <- reactive(ref_date() - 7)
 
-  # Tendencia: actividade na última semana con datos
+  # Xanela "esta semana": relativa á SEMANA ACTUAL (últimos 7 días dende hoxe).
+  # Se non hai datos nesa xanela, retrocédese á última semana CON datos e
+  # sinálase con `fallback = TRUE` para amosar un aviso ao usuario.
+  week_window <- reactive({
+    d <- fulldata()
+    recent <- Sys.Date() - 7
+    has_recent <- !is.null(d) && nrow(d) && any(d$Data.Norm >= recent, na.rm = TRUE)
+    if (has_recent) list(start = recent, end = Sys.Date(), fallback = FALSE)
+    else            list(start = ref_date() - 7, end = ref_date(), fallback = TRUE)
+  })
+  last_week <- reactive(week_window()$start)
+
+  # Aviso cando os incrementos non son da semana actual senón da última con datos
+  output$week_note <- renderUI({
+    w <- week_window()
+    if (!isTRUE(w$fallback)) return(NULL)
+    div(class = "stats-note",
+      HTML(paste0(
+        "⚠️ Non se rexistraron datos novos esta semana. Os incrementos amosados ",
+        "(\"esta semana\") son relativos á última semana con datos dispoñibles (",
+        format(w$start, "%d/%m/%Y"), " – ", format(w$end, "%d/%m/%Y"), ").")))
+  })
+
+  # Tendencia: actividade na xanela semanal
   trend_chip <- function(n) {
     if (is.na(n) || n == 0) "sen novidades esta semana"
     else paste0("▲ ", format(n, big.mark = " ", trim = TRUE), " esta semana")

@@ -48,6 +48,8 @@ body{ border-top:3px solid #136f6f; }
   font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
 .kpi-sub{ font-weight:500; letter-spacing:0; text-transform:none; color:var(--faint); font-size:.7rem; }
 .kpi-trend{ display:block; margin-top:7px; font-size:.72rem; font-weight:560; color:var(--accent, #136f6f); }
+.stats-note{ background:#fff8e6; border:1px solid #f0d68a; border-left:4px solid var(--c-convocatoria, #e8920c);
+  color:#7a5a12; border-radius:10px; padding:.6rem .85rem; font-size:.82rem; line-height:1.4; }
 
 /* tarxetas de gráficas */
 .card-header{ font-weight:620; font-size:.95rem; }
