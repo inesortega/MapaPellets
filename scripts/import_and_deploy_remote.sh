@@ -22,5 +22,8 @@ cd "${APP_DIR}"
 # A imaxe xa está cargada localmente, así que compose NON a reconstrúe.
 docker compose up -d
 
+echo ">> Instalando o cron de actualización..."
+"${APP_DIR}/scripts/setup_cron.sh" "${APP_DIR}"
+
 echo ">> Estado dos contedores:"
 docker compose ps

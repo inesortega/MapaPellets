@@ -20,11 +20,22 @@ Unha vez seleccionados os datos que é necesario actualizar, empregamos a librer
 
 ### Actualización de datos
 
-O ficherio `update_historical.R` executa un proceso en bucle para executar as tarefas de actualización de datos de forma periódica: 
+A actualización **non corre nun contedor aparte**. Para aforrar memoria e CPU no
+servidor, un `cron` no host lanza o script de un só disparo `update_once.R`
+dentro do contedor `pellets-shiny` xa en execución (`docker compose exec`). O
+proceso de R arranca, actualiza `data/praias.csv` e sae, liberando a memoria;
+non queda ningún proceso residente nin se consume CPU en reposo. A app recolle o
+CSV actualizado soa, porque o relé cada ~5 min (`invalidateLater`).
 
-- Obtención de novos datos: cada 5 min
-- Actualización dos datos diarios: cada hora
-- Actualización do dataset completo: diariamente, as 3AM. 
+`update_once.R` recibe o modo como argumento e chama unha soa vez a `get_data()`:
+
+- `fast`  → só datos novos (`get_data()`) — **cada 5 min**
+- `today` → datos do día de hoxe (`get_data(update_all = TRUE)`) — **cada hora**
+- `full`  → dataset completo (`get_data(update_all_dataset = TRUE)`) — **ás 03:00**
+
+O cron instálao [scripts/setup_cron.sh](scripts/setup_cron.sh) (idempotente, con
+`flock` para evitar solapamentos). O despregue completo
+([scripts/deploy.sh](scripts/deploy.sh)) xa o configura automaticamente.
 
 ## Despregue con docker
 
@@ -47,14 +58,19 @@ No servidor, dentro do repo clonado:
 # (só se o paquete é privado) autenticarse en GHCR
 echo <PAT_read:packages> | docker login ghcr.io -u inesortega --password-stdin
 
-# despregar a última versión
-./scripts/deploy_remote.sh
+# despregar a última versión (arranca servizos + carga inicial + instala cron)
+./scripts/deploy.sh
 
 # ... ou manualmente
 git pull
 docker compose pull
 docker compose up -d
+./scripts/setup_cron.sh        # instala/actualiza o cron de actualización
 ```
+
+[scripts/deploy.sh](scripts/deploy.sh) fai todo o despregue: `git pull`,
+`docker compose pull`, `up -d`, unha carga inicial de datos e a instalación do
+cron de actualización ([scripts/setup_cron.sh](scripts/setup_cron.sh)).
 
 O servidor segue precisando o directorio `.secrets/` (coa clave de Google) e as variables de entorno definidas en `docker-compose.yml`; eses segredos **non** van dentro da imaxe.
 

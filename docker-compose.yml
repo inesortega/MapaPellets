@@ -1,18 +1,8 @@
 services:
-  data_loader:
-    restart: "no"
-    image: ghcr.io/inesortega/mapapellets:latest
-    container_name: data_loader
-    volumes:
-      - ./data:/app/data
-      - ./.secrets:/app/.secrets:ro
-    networks:
-      - pellets
-    environment:
-      - GOOGLE_SHEETS_JSON_KEY=/app/.secrets/earnest-vine-377812-6ae11f6184bc.json
-      - ENV=docker
-    command: ["R", "-e", "source('/app/update_historical.R')"]
-
+  # A actualización dos datos NON corre nun contedor aparte: un cron no host
+  # lanza `docker compose exec pellets-shiny Rscript /app/update_once.R <modo>`
+  # contra este mesmo contedor. O proceso de actualización vive uns segundos e
+  # sae, liberando a memoria. Configúrao scripts/setup_cron.sh.
   pellets-shiny:
     restart: always
     image: ghcr.io/inesortega/mapapellets:latest
@@ -22,10 +12,13 @@ services:
     container_name: pellets-shiny
     volumes:
       - ./data:/app/data
+      # O secreto de Google Sheets necesítao update_once.R (lanzado por cron).
+      - ./.secrets:/app/.secrets:ro
     networks:
       - pellets
     environment:
       - ENV=docker
+      - GOOGLE_SHEETS_JSON_KEY=/app/.secrets/earnest-vine-377812-6ae11f6184bc.json
     command: ["R", "-e", "shiny::runApp('/app', host='0.0.0.0', port=3838)"]
 
   nginx:
