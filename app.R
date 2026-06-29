@@ -102,6 +102,9 @@ ui <- page_navbar(
       tags$span(class = "brand-sub", "Monitorización cidadá das praias de Galicia")
     )
   ),
+  # O `title` é HTML (marca + SVG); sen `window_title` bslib serializaría ese
+  # HTML como título da pestana do navegador e mostraría "<svg ...>".
+  window_title = "Unha Vez Máis - Monitorización cidadá das praias de Galicia",
   id = "sidebarID",            # conserva input$sidebarID (== "map") que usa o server
   theme = app_theme,
   fillable = FALSE,
