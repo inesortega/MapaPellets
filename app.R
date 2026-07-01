@@ -210,6 +210,54 @@ server <- function(input, output, session) {
             Tipo.de.actualización.que.nos.queres.facer.chegar  == "Hai chapapote" ~ "Chapapote")  # Default case
         )
 
+      # Normalización de Provincia e Concello (datos introducidos a man na folla
+      # de cálculo, con inconsistencias). Faise aquí para que mapa, filtros e
+      # estatísticas vexan sempre os mesmos valores.
+      #  - Provincia: valores lixo ("FALSE"/"NULL"/baleiro) pasan a NA.
+      #  - Concello: elimínanse espazos redundantes e unifícanse as variantes
+      #    que só difiren en maiúsculas/espazos (p.ex. "FERROL" -> "Ferrol"),
+      #    escollendo a grafía máis frecuente de cada concello.
+      all_data <- all_data %>%
+        mutate(
+          Provincia = str_squish(Provincia),
+          Provincia = ifelse(Provincia %in% c("", "FALSE", "NULL"), NA, Provincia),
+          Concello  = str_squish(Concello)
+        )
+
+      concello_canon <- all_data %>%
+        filter(!is.na(Concello) & Concello != "") %>%
+        mutate(.key = tolower(Concello)) %>%
+        count(.key, Concello, sort = TRUE) %>%   # grafía máis usada primeiro
+        group_by(.key) %>%
+        slice(1) %>%
+        ungroup() %>%
+        select(.key, .concello_canon = Concello)
+
+      all_data <- all_data %>%
+        mutate(.key = tolower(Concello)) %>%
+        left_join(concello_canon, by = ".key") %>%
+        mutate(Concello = coalesce(.concello_canon, Concello)) %>%
+        select(-.key, -.concello_canon)
+
+      # Recuperar a provincia que falta (30 filas con "FALSE"/"NULL") a partir do
+      # concello: para cada concello collemos a provincia máis frecuente entre as
+      # filas que si a teñen, e enchemos as que están a NA. Os concellos que nunca
+      # aparecen cunha provincia válida (p.ex. fóra de Galicia) quedan en NA.
+      provincia_lookup <- all_data %>%
+        filter(!is.na(Provincia), !is.na(Concello) & Concello != "") %>%
+        mutate(.key = tolower(Concello)) %>%
+        count(.key, Provincia, sort = TRUE) %>%
+        group_by(.key) %>%
+        slice(1) %>%
+        ungroup() %>%
+        select(.key, .provincia_canon = Provincia)
+
+      all_data <- all_data %>%
+        mutate(.key = tolower(Concello)) %>%
+        left_join(provincia_lookup, by = ".key") %>%
+        mutate(Provincia = coalesce(Provincia, .provincia_canon)) %>%
+        select(-.key, -.provincia_canon)
+
       all_data <- all_data %>%
         mutate(Nome.da.praia..Concello = ifelse(str_detect(Nome.da.praia..Concello, ","),
                                                 Nome.da.praia..Concello,
@@ -235,13 +283,19 @@ server <- function(input, output, session) {
       updateDateRangeInput(session, inputId = "dateRange",
                            start = max - 30, end = max, min = min, max = max)
       isFirstRun(FALSE)
+      # `updateDateRangeInput` é asíncrono: nesta mesma pasada `input$dateRange`
+      # aínda ten o valor inicial do sidebar (baseado en Sys.Date()), que pode
+      # non solaparse cos datos. Usamos xa o rango efectivo para que os filtros
+      # dependentes (provincia/concello) se poboen ben dende a primeira carga.
+      start_date <- max - 30
+      end_date <- max
     } else {
       updateDateRangeInput(session, inputId = "dateRange", min = min, max = max)
-    }
-
-    if (!is.null(input$dateRange)) {
       start_date <- input$dateRange[1]
       end_date <- input$dateRange[2]
+    }
+
+    if (!is.null(start_date) && !is.null(end_date)) {
       filtered_data <- all_data %>%
         filter(Data.Norm >= start_date & Data.Norm <= end_date)
     } else {
@@ -249,14 +303,14 @@ server <- function(input, output, session) {
     }
 
     # Filter data based on selected provincia
-    updateSelectInput(session,"select_provincia",choices=setdiff(unique(filtered_data$Provincia), "FALSE"), select = input$select_provincia)
+    updateSelectInput(session,"select_provincia",choices=sort(unique(na.omit(filtered_data$Provincia))), selected = input$select_provincia)
 
     if(!is.null(input$select_provincia)){
       filtered_data <- filtered_data %>% filter(Provincia %in% input$select_provincia)
     }
 
     # Filter data based on selected concello
-    updateSelectInput(session,"select_concello",choices=unique(filtered_data$Concello), select = input$select_concello)
+    updateSelectInput(session,"select_concello",choices=sort(unique(na.omit(filtered_data$Concello))), selected = input$select_concello)
 
     if(!is.null(input$select_concello)){
       filtered_data <- filtered_data %>% filter(Concello %in% input$select_concello)
